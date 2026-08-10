@@ -202,16 +202,6 @@
 </nav>
 
 <main>
-  <div style="background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:24px; font-size:12px;">
-    <div style="color:var(--text-dim); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.06em; font-size:11px;">Config (fill in once — real deployment values)</div>
-    <input id="cfg-guild" placeholder="Discord Guild ID" style="width:100%; margin-bottom:6px; padding:8px; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:12px;">
-    <input id="cfg-supabase-url" placeholder="Supabase URL (https://xxx.supabase.co)" style="width:100%; margin-bottom:6px; padding:8px; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:12px;">
-    <input id="cfg-supabase-anon" placeholder="Supabase anon key" style="width:100%; margin-bottom:6px; padding:8px; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:12px;">
-    <input id="cfg-fn-get-team" placeholder="get-my-team Edge Function URL" style="width:100%; margin-bottom:6px; padding:8px; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:12px;">
-    <input id="cfg-fn-register" placeholder="register-team Edge Function URL" style="width:100%; margin-bottom:6px; padding:8px; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:12px;">
-    <input id="cfg-fn-submit" placeholder="submit-lineup Edge Function URL" style="width:100%; padding:8px; background:var(--panel-2); border:1px solid var(--line); border-radius:6px; color:var(--text); font-family:'IBM Plex Mono',monospace; font-size:12px;">
-  </div>
-
   <div id="connect-gate">
     <h1 class="display">Set your weekly lineup</h1>
     <p>Connect your wallet to load your held Zappies and build this week's formation.</p>
@@ -321,7 +311,13 @@ let formation = "BALANCED";
 let activeTab = "Striker";
 let assignments = {Striker:[], Mid:[], Guard:[]};
 
-function cfg(id){ return document.getElementById(id).value.trim(); }
+// ── Real deployment config ──
+const GUILD_ID = "1310425792349601985";
+const SUPABASE_URL = "https://texlxhkzsbvwvptjanhd.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRleGx4aGt6c2J2d3ZwdGphbmhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTU3MTYsImV4cCI6MjA4OTQzMTcxNn0.yihmxMxvdnV0zLaT8JVddT0zYd9MB3Ol9mj0Xnfl4KM";
+const FN_GET_MY_TEAM = "https://texlxhkzsbvwvptjanhd.supabase.co/functions/v1/get-my-team";
+const FN_REGISTER_TEAM = "https://texlxhkzsbvwvptjanhd.supabase.co/functions/v1/register-team";
+const FN_SUBMIT_LINEUP = "https://texlxhkzsbvwvptjanhd.supabase.co/functions/v1/submit-lineup";
 function toast(msg, isError=false){
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -360,11 +356,11 @@ async function callFunction(url, payload){
 
 // ── Supabase REST reads (public policies only — see voltball_schema.sql) ──
 async function supabaseGet(path){
-  const url = `${cfg('cfg-supabase-url')}/rest/v1/${path}`;
+  const url = `${SUPABASE_URL}/rest/v1/${path}`;
   const res = await fetch(url, {
     headers: {
-      apikey: cfg('cfg-supabase-anon'),
-      Authorization: `Bearer ${cfg('cfg-supabase-anon')}`,
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
     },
   });
   if (!res.ok) throw new Error(`Supabase read failed: ${res.status}`);
@@ -435,26 +431,26 @@ async function fetchHeldZappies(address){
 // voltball_schema.sql's notes on why voltball_teams has no blanket
 // public policy). ──
 async function getMyTeam(){
-  const guildId = cfg('cfg-guild');
+  const guildId = GUILD_ID;
   const timestamp = Math.floor(Date.now() / 1000);
   const payload = { guild_id: guildId, timestamp };
   const signature = await signPayload({ guild_id: guildId, timestamp }, "Check your Voltball team");
   payload.address = accountAddress;
   payload.signature = signature;
-  return callFunction(cfg('cfg-fn-get-team'), payload);
+  return callFunction(FN_GET_MY_TEAM, payload);
 }
 
 window.registerTeam = async function(){
   const teamName = document.getElementById('new-team-name').value.trim();
   if (!teamName){ toast("Enter a team name first.", true); return; }
-  const guildId = cfg('cfg-guild');
+  const guildId = GUILD_ID;
   const timestamp = Math.floor(Date.now() / 1000);
   const payload = { guild_id: guildId, team_name: teamName, hero_asset_id: null, timestamp };
   try {
     const signature = await signPayload(payload, "Confirm your Voltball team registration");
     payload.address = accountAddress;
     payload.signature = signature;
-    const { status, result } = await callFunction(cfg('cfg-fn-register'), payload);
+    const { status, result } = await callFunction(FN_REGISTER_TEAM, payload);
     if (status === 200){
       toast(`✓ ${result.team.team_name} registered!`);
       await loadMyTeamAndRoster();
@@ -754,7 +750,7 @@ window.lockIn = async function(){
     payload.address = accountAddress;
     payload.signature = signature;
 
-    const { status, result } = await callFunction(cfg('cfg-fn-submit'), payload);
+    const { status, result } = await callFunction(FN_SUBMIT_LINEUP, payload);
     if (status === 200){
       for (const item of document.querySelectorAll('#lanes .slot')) item.style.pointerEvents = 'none';
 
