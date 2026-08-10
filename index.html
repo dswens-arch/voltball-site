@@ -361,6 +361,16 @@ async function supabaseGet(path){
     headers: {
       apikey: SUPABASE_ANON_KEY,
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      // Without this, PostgREST defaults to whichever schema is listed
+      // FIRST in the project's exposed-schemas config -- in this
+      // project that's graphql_public, not public, so every request
+      // silently 404'd looking for our tables in the wrong schema
+      // entirely. Confirmed directly: the raw REST error was
+      // "Could not find the table 'graphql_public.voltball_seasons'"
+      // -- not a permissions issue, not a missing table, just the
+      // wrong schema being searched. This header pins it to public
+      // explicitly, matching PostgREST's own documented behavior.
+      "Accept-Profile": "public",
     },
   });
   if (!res.ok) throw new Error(`Supabase read failed: ${res.status}`);
