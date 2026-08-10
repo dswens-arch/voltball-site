@@ -454,6 +454,7 @@ window.registerTeam = async function(){
     const { status, result } = await callFunction(FN_REGISTER_TEAM, payload);
     if (status === 200){
       toast(`✓ ${result.team.team_name} registered!`);
+      clearCachedTeam(accountAddress); // a fresh team now exists, don't let a stale "no team" cache linger
       await loadMyTeamAndRoster();
     } else if (status === 300){
       toast("Multiple Heroes held — pick one isn't wired into this UI yet.", true);
@@ -466,30 +467,113 @@ window.registerTeam = async function(){
   }
 };
 
+// ── Team/season lookup caching ──
+// getMyTeam() requires a fresh wallet signature every call (the payload
+// includes a timestamp, so there's no way to reuse an old signature).
+// Without caching, that means signing on every single page load just to
+// check "do I have a team" -- real friction, and worse, if that signing
+// prompt is ever dismissed or fails, the whole load aborts BEFORE the
+// lineup-restoration check even runs (it depends on currentTeam being
+// set first), which looks exactly like "my roster wasn't saved" even
+// when it actually was.
+//
+// WHAT'S CACHED VS. ALWAYS FRESH: only "which team is mine" (team_id,
+// hero) is cached, for 7 days -- that genuinely doesn't change without
+// an explicit action (registering clears it immediately). The current
+// WEEK is never cached, even for a second -- it's fetched fresh every
+// load via a plain public read (voltball_seasons has a public policy,
+// so this needs no signature at all). Caching current_week for 7 days
+// would mean a lineup submission could silently use a days-stale week
+// number -- wrong week, or a week that's already resolved. That's a
+// correctness bug, not just staleness, so it's not on the table here.
+const TEAM_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function teamCacheKey(address){ return `voltball_myteam_${GUILD_ID}_${address}`; }
+
+function getCachedTeam(address){
+  try {
+    const raw = localStorage.getItem(teamCacheKey(address));
+    if (!raw) return null;
+    const cached = JSON.parse(raw);
+    if (Date.now() - cached.cachedAt > TEAM_CACHE_TTL_MS) return null;
+    return cached.team;
+  } catch (err) {
+    console.error("Reading team cache failed (non-fatal):", err);
+    return null;
+  }
+}
+
+function setCachedTeam(address, team){
+  try {
+    localStorage.setItem(teamCacheKey(address), JSON.stringify({ team, cachedAt: Date.now() }));
+  } catch (err) {
+    console.error("Writing team cache failed (non-fatal):", err);
+  }
+}
+
+function clearCachedTeam(address){
+  try { localStorage.removeItem(teamCacheKey(address)); } catch (err) { /* non-fatal */ }
+}
+
+// Always a fresh, unsigned public read -- see the note above on why
+// current_week specifically is never cached.
+async function fetchCurrentSeason(){
+  const rows = await supabaseGet(`voltball_seasons?guild_id=eq.${GUILD_ID}&status=in.(active,upcoming)&order=status.asc&select=*`);
+  return rows?.[0] ?? null;
+}
+
 async function loadMyTeamAndRoster(){
   statusLine("Checking for your team…");
   document.getElementById('connect-gate').style.display = 'none';
 
-  let getTeamResult;
   try {
-    getTeamResult = await getMyTeam();
+    currentSeason = await fetchCurrentSeason();
   } catch (err) {
     console.error(err);
     statusLine("");
-    toast("Couldn't check your team — see console.", true);
+    toast("Couldn't load season info — see console.", true);
     return;
   }
-
-  if (getTeamResult.status !== 200){
+  if (!currentSeason){
     statusLine("");
-    toast(`✗ ${getTeamResult.result.error}`, true);
+    toast("No active or upcoming season for this guild.", true);
     return;
   }
 
-  currentSeason = getTeamResult.result.season;
-  currentTeam = getTeamResult.result.team;
+  let cachedTeam = getCachedTeam(accountAddress);
+  // A cached team from a PREVIOUS season is not valid for the current
+  // one -- each season needs its own registration. Without this check,
+  // a new season starting would silently keep showing an old team.
+  if (cachedTeam && cachedTeam.season_id !== currentSeason.id){
+    clearCachedTeam(accountAddress);
+    cachedTeam = null;
+  }
+
+  if (cachedTeam){
+    currentTeam = cachedTeam;
+  } else {
+    let getTeamResult;
+    try {
+      getTeamResult = await getMyTeam();
+    } catch (err) {
+      console.error(err);
+      statusLine("");
+      toast("Couldn't check your team — see console.", true);
+      return;
+    }
+
+    if (getTeamResult.status !== 200){
+      statusLine("");
+      toast(`✗ ${getTeamResult.result.error}`, true);
+      return;
+    }
+
+    currentTeam = getTeamResult.result.team;
+    if (currentTeam) setCachedTeam(accountAddress, currentTeam);
+  }
 
   if (!currentTeam){
+
     statusLine("");
     document.getElementById('no-team-panel').style.display = 'block';
     return;
