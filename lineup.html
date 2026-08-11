@@ -77,6 +77,15 @@
     border:2px solid var(--striker); box-shadow:0 0 16px rgba(232,255,60,0.25);
   }
   .team-header h1{ font-size:26px; }
+
+  .signature-card{
+    background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--qb);
+    border-radius:8px; padding:12px 16px; margin:18px 0 28px; display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;
+  }
+  .signature-label{ font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:13px; color:var(--qb); white-space:nowrap; }
+  .signature-desc{ font-size:12px; color:var(--text-dim); }
+  .signature-card.no-coach{ border-left-color:var(--line); }
+  .signature-card.no-coach .signature-label{ color:var(--text-dim); }
   .team-header .sub{ color:var(--text-dim); font-size:13px; }
   .team-header .sub b{ color:var(--text); }
 
@@ -303,12 +312,17 @@
       </div>
     </div>
 
+    <div class="signature-card" id="signature-card">
+      <div class="signature-label" id="signature-label">—</div>
+      <div class="signature-desc" id="signature-desc">—</div>
+    </div>
+
     <div class="section-title">Formation</div>
-    <div style="font-size:11px; color:var(--text-dim); margin:-16px 0 20px;">Thumbnails try to load the real Zappy art first — if you see colored circles instead, your browser couldn't reach the IPFS gateway.</div>
+    <div style="font-size:11px; color:var(--text-dim); margin:6px 0 20px;">Thumbnails try to load the real Zappy art first — if you see colored circles instead, your browser couldn't reach the IPFS gateway.</div>
     <div class="formations" id="formations"></div>
 
     <div class="section-title">Tempo</div>
-    <div style="font-size:11px; color:var(--text-dim); margin:-16px 0 20px;">1 = Controlled (smaller swings, better average) · 10 = Aggressive (bigger swings, worse average). 5.5 is Standard.</div>
+    <div style="font-size:11px; color:var(--text-dim); margin:6px 0 20px;">1 = Controlled (smaller swings, better average) · 10 = Aggressive (bigger swings, worse average). 5.5 is Standard.</div>
     <div class="tempo-dial">
       <input type="range" id="tempo-slider" min="1" max="10" step="0.5" value="5.5" oninput="window.onTempoChange(this.value)">
       <div class="tempo-scale-labels"><span>1 · Controlled</span><span>10 · Aggressive</span></div>
@@ -362,6 +376,25 @@ const HERO_IMAGE = {
   Buck:      "https://ipfs-pera.algonode.dev/ipfs/bafybeihumzywdl3eogvon3c7dwtmmcfxyi2in7a2ibfnkjekkfdxq6ydwq?optimizer=image&width=200&quality=70",
   Snake:     "https://ipfs-pera.algonode.dev/ipfs/bafybeifgmwm45kg3hg3tan3hvrdqsh6e2jijrm2zuy2tnhhij6krvvzdda?optimizer=image&width=200&quality=70",
   Shark:     "https://ipfs-pera.algonode.dev/ipfs/bafybeigtp5qmpaxgqvagk5cuty63i4vzsrwy3tc6s3ryoppvlekubzt5ki?optimizer=image&width=200&quality=70",
+};
+
+// Mirrors voltball_engine.py's HERO_SIGNATURES — label + desc only (the
+// mechanical tuning values like chance/bonus/growth aren't needed for
+// display). Keep in sync manually if a Hero's signature is ever
+// renamed/reflavored, same duplication pattern already used for
+// FORMATIONS in submit-lineup.ts.
+const HERO_SIGNATURES = {
+  Wolf:      { label: "Pack Hunt",     desc: "The pack gets hungrier as the match wears on." },
+  Frog:      { label: "Patience",      desc: "Sits back early, cashes in late." },
+  Bear:      { label: "Beardown",      desc: "Bulldozes straight through the opposing defense." },
+  Crocodile: { label: "Death Roll",    desc: "Locks the opponent out of their big play." },
+  Cat:       { label: "Nine Lives",    desc: "Refuses to let the worst quarter sink them." },
+  Rabbit:    { label: "Lucky Foot",    desc: "A lucky bounce goes their way." },
+  Eagle:     { label: "Talon Strike",  desc: "Strikes early and hard before the opponent settles in." },
+  Buck:      { label: "Antler Clash",  desc: "Wears the opponent down possession by possession." },
+  Snake:     { label: "Venom Bite",    desc: "The bite doesn't hurt right away — the poison does." },
+  Shark:     { label: "Feeding Frenzy",desc: "Smells blood in the water when the opponent is trailing." },
+  ShittyKitties: { label: "Chaos Mode",desc: "Even the bot doesn't know which stat is about to triple." },
 };
 
 function avatarFor(seed, size=200){
@@ -741,6 +774,21 @@ async function loadMyTeamAndRoster(){
   const realHero = HERO_IMAGE[currentTeam.hero_type];
   portrait.src = realHero || avatarFor(currentTeam.hero_type || currentTeam.id);
   if (realHero) portrait.onerror = () => { portrait.onerror = null; portrait.src = avatarFor(currentTeam.hero_type || currentTeam.id); };
+
+  // Coach benefit is easy to lose track of once you're deep in roster-
+  // building — surface it persistently right under the team header
+  // rather than only at registration time.
+  const sig = HERO_SIGNATURES[currentTeam.hero_type];
+  const sigCard = document.getElementById('signature-card');
+  if (sig) {
+    sigCard.classList.remove('no-coach');
+    document.getElementById('signature-label').textContent = `🦸 ${sig.label}`;
+    document.getElementById('signature-desc').textContent = sig.desc;
+  } else {
+    sigCard.classList.add('no-coach');
+    document.getElementById('signature-label').textContent = 'No Coach';
+    document.getElementById('signature-desc').textContent = 'No signature play this season — roster, formation, and tempo still work exactly the same.';
+  }
 
   // Check for an already-submitted lineup THIS week — public read, no
   // signature needed (voltball_lineups has a public policy). Without
