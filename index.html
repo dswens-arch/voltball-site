@@ -38,6 +38,14 @@
   }
   .wordmark{ display:flex; align-items:center; gap:10px; font-size:20px; }
   .wordmark .bolt{ color:var(--striker); font-size:22px; filter: drop-shadow(0 0 8px rgba(232,255,60,0.6)); }
+  .nav-links{ display:flex; align-items:center; gap:22px; margin-right:20px; }
+  .nav-link{
+    font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:13px; letter-spacing:0.03em;
+    color:var(--text-dim); text-decoration:none; padding:6px 2px; border-bottom:2px solid transparent; transition: all .15s ease;
+  }
+  .nav-link:hover{ color:var(--text); }
+  .nav-link.active{ color:var(--striker); border-color:var(--striker); }
+  .nav-right{ display:flex; align-items:center; }
   .wallet-btn{
     background: var(--striker); color:#0B0D14; border:none; border-radius:6px;
     padding: 10px 20px; font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:14px;
@@ -198,7 +206,13 @@
 
 <nav>
   <div class="wordmark"><span class="bolt">⚡</span><span class="display">VOLTBALL</span></div>
-  <button class="wallet-btn" id="wallet-btn" onclick="connectWallet()">Connect Wallet</button>
+  <div class="nav-right">
+    <div class="nav-links">
+      <a class="nav-link active" href="./index.html">Lineup</a>
+      <a class="nav-link" href="./standings.html">Standings</a>
+    </div>
+    <button class="wallet-btn" id="wallet-btn" onclick="connectWallet()">Connect Wallet</button>
+  </div>
 </nav>
 
 <main>
