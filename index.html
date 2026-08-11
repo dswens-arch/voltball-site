@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Voltball — Set Your Lineup</title>
+<title>Voltball — Coach Your Zappies</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
@@ -25,7 +25,7 @@
     color: var(--text);
     font-family: 'Inter', sans-serif;
     min-height:100vh;
-    padding-bottom: 100px;
+    padding-bottom: 60px;
   }
   .mono{ font-family:'IBM Plex Mono', monospace; }
   .display{ font-family:'Chakra Petch', sans-serif; font-weight:700; letter-spacing:0.01em; }
@@ -36,7 +36,7 @@
     position:sticky; top:0; background:rgba(11,13,20,0.85); backdrop-filter: blur(10px);
     z-index:50;
   }
-  .wordmark{ display:flex; align-items:center; gap:10px; font-size:20px; }
+  .wordmark{ display:flex; align-items:center; gap:10px; font-size:20px; color:inherit; cursor:pointer; text-decoration:none; }
   .wordmark .bolt{ color:var(--striker); font-size:22px; filter: drop-shadow(0 0 8px rgba(232,255,60,0.6)); }
   .nav-links{ display:flex; align-items:center; gap:22px; margin-right:20px; }
   .nav-link{
@@ -44,12 +44,11 @@
     color:var(--text-dim); text-decoration:none; padding:6px 2px; border-bottom:2px solid transparent; transition: all .15s ease;
   }
   .nav-link:hover{ color:var(--text); }
-  .nav-link.active{ color:var(--striker); border-color:var(--striker); }
   .nav-right{ display:flex; align-items:center; }
   .wallet-btn{
     background: var(--striker); color:#0B0D14; border:none; border-radius:6px;
     padding: 10px 20px; font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:14px;
-    cursor:pointer; letter-spacing:0.02em; transition: all .15s ease;
+    cursor:pointer; letter-spacing:0.02em; transition: all .15s ease; white-space:nowrap;
   }
   .wallet-btn:hover{ box-shadow: 0 0 24px rgba(232,255,60,0.4); transform: translateY(-1px); }
   .wallet-btn.connected{
@@ -59,134 +58,37 @@
   .wallet-btn.connected:hover{ box-shadow:none; transform:none; }
   .dot{ width:7px; height:7px; border-radius:50%; background:var(--guard); box-shadow:0 0 8px var(--guard); }
 
-  main{ max-width: 980px; margin: 0 auto; padding: 40px 24px 0; }
+  main{ max-width: 900px; margin: 0 auto; padding: 0 24px; }
 
-  #connect-gate{ text-align:center; padding: 120px 20px; }
-  #connect-gate h1{ font-size:34px; margin-bottom:12px; }
-  #connect-gate p{ color:var(--text-dim); font-size:15px; margin-bottom:32px; }
-  #connect-gate .wallet-btn{ font-size:16px; padding:14px 32px; }
+  .hero{ text-align:center; padding: 90px 20px 50px; }
+  .hero .bolt-big{ font-size:44px; color:var(--striker); filter: drop-shadow(0 0 20px rgba(232,255,60,0.5)); margin-bottom:6px; display:block; }
+  .hero h1{ font-size:44px; line-height:1.15; margin-bottom:16px; }
+  .hero p{ color:var(--text-dim); font-size:16px; max-width:520px; margin:0 auto 36px; line-height:1.6; }
 
-  #app{ display:none; }
-  #app.visible{ display:block; }
+  .cta-btn{
+    background: linear-gradient(90deg, var(--striker), #c8e82e); color:#0B0D14; border:none;
+    font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:16px; letter-spacing:0.03em;
+    padding: 16px 40px; border-radius:10px; cursor:pointer; transition: all .2s ease;
+    box-shadow: 0 0 28px rgba(232,255,60,0.3); text-decoration:none; display:inline-block;
+  }
+  .cta-btn:hover{ transform: translateY(-2px); box-shadow: 0 0 40px rgba(232,255,60,0.5); }
+  .cta-sub{ margin-top:14px; font-size:12px; color:var(--text-dim); }
 
-  .team-header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; flex-wrap:wrap; gap:16px;}
-  .team-identity{ display:flex; align-items:center; gap:14px; }
-  .coach-portrait{
-    width:56px; height:56px; border-radius:10px; object-fit:cover;
-    border:2px solid var(--striker); box-shadow:0 0 16px rgba(232,255,60,0.25);
+  .steps{ display:grid; grid-template-columns: repeat(3,1fr); gap:16px; margin: 30px 0 60px; }
+  .step-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:22px 18px;
+    text-align:left; position:relative; overflow:hidden;
   }
-  .team-header h1{ font-size:26px; }
-  .team-header .sub{ color:var(--text-dim); font-size:13px; }
-  .team-header .sub b{ color:var(--text); }
+  .step-card .step-num{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); margin-bottom:10px;
+  }
+  .step-card h3{ font-family:'Chakra Petch',sans-serif; font-size:16px; margin-bottom:8px; }
+  .step-card p{ font-size:13px; color:var(--text-dim); line-height:1.55; }
+  .step-card.striker{ border-top:2px solid var(--striker); }
+  .step-card.mid{ border-top:2px solid var(--mid); }
+  .step-card.guard{ border-top:2px solid var(--guard); }
 
-  .section-title{
-    font-size:12px; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-dim);
-    margin-bottom:12px; display:flex; align-items:center; gap:10px;
-  }
-  .section-title::after{ content:''; flex:1; height:1px; background:var(--line); }
-
-  .formations{ display:grid; grid-template-columns: repeat(3,1fr); gap:12px; margin-bottom:36px; }
-  .formation-card{
-    background:var(--panel); border:1px solid var(--line); border-radius:10px;
-    padding:16px; cursor:pointer; transition: all .15s ease;
-  }
-  .formation-card:hover{ border-color:#3a3f5a; }
-  .formation-card.active{ border-color: var(--striker); box-shadow: 0 0 0 1px var(--striker), 0 0 20px rgba(232,255,60,0.15); }
-  .formation-card .fname{ font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:15px; margin-bottom:6px; }
-  .formation-card .fcounts{ display:flex; gap:10px; font-size:12px; }
-  .fcounts span{ display:flex; align-items:center; gap:4px; }
-  .swatch{ width:8px; height:8px; border-radius:2px; }
-
-  .field{
-    background: linear-gradient(180deg, var(--panel) 0%, #10121C 100%);
-    border:1px solid var(--line); border-radius: 14px; padding: 28px 20px;
-    margin-bottom:36px; position:relative; overflow:hidden;
-  }
-  .field::before{
-    content:''; position:absolute; inset:0; opacity:.35; pointer-events:none;
-    background-image:
-      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-    background-size: 24px 24px;
-  }
-  .lanes{ display:grid; grid-template-columns: repeat(3,1fr); gap:18px; position:relative; }
-  .lane{ text-align:center; }
-  .lane-label{
-    font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:13px;
-    text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px;
-  }
-  .lane-sub{ font-size:11px; color:var(--text-dim); margin-bottom:14px; }
-  .lane[data-pos="Striker"] .lane-label{ color:var(--striker); }
-  .lane[data-pos="Mid"] .lane-label{ color:var(--mid); }
-  .lane[data-pos="Guard"] .lane-label{ color:var(--guard); }
-
-  .slots{ display:flex; flex-direction:column; gap:8px; }
-  .slot{
-    height:56px; border-radius:8px; border:1.5px dashed var(--line);
-    display:flex; align-items:center; justify-content:center; gap:8px;
-    font-size:12px; color:var(--text-dim); cursor:pointer; transition: all .15s ease;
-    position:relative; background:rgba(255,255,255,0.015);
-  }
-  .slot:hover{ border-color:#4a4f6a; }
-  .slot.filled{ border-style:solid; cursor:default; padding:0 10px; justify-content:space-between; }
-  .lane[data-pos="Striker"] .slot.filled{ border-color:var(--striker); background:rgba(232,255,60,0.06); box-shadow:0 0 14px rgba(232,255,60,0.12) inset; }
-  .lane[data-pos="Mid"] .slot.filled{ border-color:var(--mid); background:rgba(123,92,255,0.08); box-shadow:0 0 14px rgba(123,92,255,0.15) inset; }
-  .lane[data-pos="Guard"] .slot.filled{ border-color:var(--guard); background:rgba(45,225,194,0.06); box-shadow:0 0 14px rgba(45,225,194,0.12) inset; }
-  .slot .zthumb{ width:34px; height:34px; border-radius:6px; object-fit:cover; flex-shrink:0; }
-  .slot .zname{ font-size:12px; font-weight:500; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
-  .slot .zstat{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); flex-shrink:0; }
-  .slot .remove{ font-size:14px; color:var(--text-dim); cursor:pointer; flex-shrink:0; padding-left:6px; }
-  .slot .remove:hover{ color:var(--alert); }
-
-  .roster-header{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px; }
-  .lane-tabs{ display:flex; gap:6px; margin-bottom:16px; }
-  .lane-tab{
-    font-family:'Chakra Petch',sans-serif; font-size:12px; font-weight:600; padding:7px 14px;
-    border-radius:20px; border:1px solid var(--line); cursor:pointer; color:var(--text-dim); transition: all .15s ease;
-  }
-  .lane-tab.active[data-pos="Striker"]{ border-color:var(--striker); color:var(--striker); background:rgba(232,255,60,0.08); }
-  .lane-tab.active[data-pos="Mid"]{ border-color:var(--mid); color:var(--mid); background:rgba(123,92,255,0.1); }
-  .lane-tab.active[data-pos="Guard"]{ border-color:var(--guard); color:var(--guard); background:rgba(45,225,194,0.08); }
-
-  .roster-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap:10px; margin-bottom:24px; }
-  .zcard{
-    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:0 0 12px;
-    cursor:pointer; transition: all .15s ease; overflow:hidden;
-  }
-  .zcard:hover{ border-color:#3a3f5a; transform: translateY(-1px); }
-  .zcard.used{ opacity:.3; cursor:not-allowed; }
-  .zcard.used:hover{ transform:none; }
-  .zcard .zthumb{ width:100%; aspect-ratio:1; object-fit:cover; display:block; background:var(--panel-2); margin-bottom:10px; }
-  .zcard .zbody{ padding:0 12px; }
-  .zcard .zn{ font-size:13px; font-weight:600; margin-bottom:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .zstats{ display:flex; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:11px; }
-  .zstats .st{ display:flex; align-items:center; gap:3px; color:var(--text-dim); }
-  .zstats .st.hot{ color:var(--text); font-weight:600; }
-  .fit-badge{
-    display:inline-block; margin-top:8px; font-size:10px; padding:2px 7px; border-radius:4px;
-    font-family:'Chakra Petch',sans-serif; font-weight:600; letter-spacing:0.03em;
-  }
-  .fit-badge.elite{ background:rgba(232,255,60,0.15); color:var(--striker); }
-  .fit-badge.strong{ background:rgba(123,92,255,0.15); color:#a595ff; }
-  .fit-badge.solid{ background:rgba(45,225,194,0.12); color:var(--guard); }
-
-  .submit-bar{
-    position:fixed; bottom:0; left:0; right:0; background:rgba(11,13,20,0.92); backdrop-filter: blur(12px);
-    border-top:1px solid var(--line); padding:16px 32px; display:flex; align-items:center; justify-content:space-between;
-    z-index:40;
-  }
-  .progress-text{ font-size:13px; color:var(--text-dim); }
-  .progress-text b{ color:var(--text); font-family:'IBM Plex Mono',monospace; }
-  .lock-btn{
-    font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:14px; letter-spacing:0.03em;
-    padding:13px 28px; border-radius:8px; border:none; cursor:not-allowed;
-    background: var(--panel-2); color: var(--text-dim); transition: all .2s ease;
-  }
-  .lock-btn.ready{
-    background: linear-gradient(90deg, var(--striker), #c8e82e); color:#0B0D14; cursor:pointer;
-    box-shadow: 0 0 28px rgba(232,255,60,0.35);
-  }
-  .lock-btn.ready:hover{ transform: translateY(-1px); box-shadow: 0 0 36px rgba(232,255,60,0.5); }
+  .footnote{ text-align:center; color:var(--text-dim); font-size:12px; padding: 10px 0 30px; }
 
   .toast{
     position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-10px); opacity:0;
@@ -197,18 +99,30 @@
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
   @media (max-width: 700px){
-    .lanes{ grid-template-columns: 1fr; }
-    .formations{ grid-template-columns: 1fr; }
+    nav{ padding: 14px 16px; }
+    .wordmark{ font-size:16px; gap:7px; }
+    .wordmark .bolt{ font-size:17px; }
+    .nav-right{ flex-direction:column; align-items:flex-end; gap:8px; }
+    .nav-links{ gap:16px; margin-right:0; }
+    .nav-link{ font-size:11px; }
+    .wallet-btn{ font-size:12px; padding:8px 14px; }
+    .wallet-btn.connected{ font-size:11px; padding:7px 12px; }
+
+    .hero{ padding: 60px 12px 34px; }
+    .hero h1{ font-size:30px; }
+    .hero p{ font-size:14px; }
+    .cta-btn{ padding:14px 30px; font-size:14px; }
+    .steps{ grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 
 <nav>
-  <div class="wordmark"><span class="bolt">⚡</span><span class="display">VOLTBALL</span></div>
+  <a class="wordmark" href="./index.html"><span class="bolt">⚡</span><span class="display">VOLTBALL</span></a>
   <div class="nav-right">
     <div class="nav-links">
-      <a class="nav-link active" href="./index.html">Lineup</a>
+      <a class="nav-link" href="./lineup.html">Lineup</a>
       <a class="nav-link" href="./standings.html">Standings</a>
     </div>
     <button class="wallet-btn" id="wallet-btn" onclick="connectWallet()">Connect Wallet</button>
@@ -216,122 +130,43 @@
 </nav>
 
 <main>
-  <div id="connect-gate">
-    <h1 class="display">Set your weekly lineup</h1>
-    <p>Connect your wallet to load your held Zappies and build this week's formation.</p>
-    <button class="wallet-btn" onclick="connectWallet()">Connect Wallet</button>
+  <div class="hero">
+    <span class="bolt-big">⚡</span>
+    <h1 class="display">Coach your Zappies.<br>Own the season.</h1>
+    <p>Voltball is a fantasy league built on your Zappies Reborn collection. A Hero NFT coaches your team, seven of your held Zappies fill the roster, and every week's formation decides how the match plays out.</p>
+    <button class="cta-btn" id="hero-cta" onclick="heroCTA()">Connect Wallet</button>
+    <div class="cta-sub" id="cta-sub">Requires a Hero (or collab) NFT and 7+ roster-eligible Zappies in your wallet.</div>
   </div>
 
-  <div id="status-line" style="display:none; font-size:12px; color:var(--text-dim); margin-bottom:16px;"></div>
-
-  <div id="no-team-panel" style="display:none; text-align:center; padding:60px 20px;">
-    <h1 class="display" style="font-size:24px; margin-bottom:8px;">No team yet</h1>
-    <p style="color:var(--text-dim); margin-bottom:24px;">This wallet doesn't have a team registered for this season.</p>
-    <input id="new-team-name" placeholder="Team name" style="max-width:280px; margin:0 auto 12px; display:block; padding:12px; background:var(--panel); border:1px solid var(--line); border-radius:8px; color:var(--text); text-align:center;">
-    <button class="wallet-btn" onclick="registerTeam()" id="register-btn">Register Team</button>
+  <div class="steps">
+    <div class="step-card striker">
+      <div class="step-num">01</div>
+      <h3>Register your coach</h3>
+      <p>Connect your wallet and register a team under whichever Hero NFT you hold — that Hero coaches your team for the season.</p>
+    </div>
+    <div class="step-card mid">
+      <div class="step-num">02</div>
+      <h3>Set your formation</h3>
+      <p>Pick OFFENSE, BALANCED, or DEFENSE each week and slot 7 held Zappies into Surge Back, Conductor, and Guard lanes.</p>
+    </div>
+    <div class="step-card guard">
+      <div class="step-num">03</div>
+      <h3>Watch it play out</h3>
+      <p>Matches resolve quarter by quarter in real time. Check Standings any time to see how your team stacks up.</p>
+    </div>
   </div>
 
-  <div id="app">
-    <div class="team-header">
-      <div class="team-identity">
-        <img class="coach-portrait" id="coach-portrait" src="" alt="">
-        <div>
-          <h1 class="display" id="team-name-display">—</h1>
-          <div class="sub">Coached by <b id="coach-name-display">—</b> · Week <b id="week-display">—</b> <span id="locked-badge" style="display:none;"></span></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="section-title">Formation</div>
-    <div style="font-size:11px; color:var(--text-dim); margin:-16px 0 20px;">Thumbnails try to load the real Zappy art first — if you see colored circles instead, your browser couldn't reach the IPFS gateway.</div>
-    <div class="formations" id="formations"></div>
-
-    <div class="section-title">Field</div>
-    <div class="field">
-      <div class="lanes" id="lanes"></div>
-    </div>
-
-    <div class="roster-header">
-      <div class="section-title" style="margin-bottom:0; flex:1;">Your Roster</div>
-    </div>
-    <div class="lane-tabs" id="lane-tabs"></div>
-    <div class="roster-hint" id="roster-hint" style="margin-bottom:12px; font-size:12px; color:var(--text-dim);"></div>
-    <div class="roster-grid" id="roster-grid"></div>
-  </div>
+  <div class="footnote">Already registered? Connecting your wallet takes you straight to your lineup.</div>
 </main>
-
-<div class="submit-bar" id="submit-bar" style="display:none;">
-  <div class="progress-text"><b id="progress-count">0/7</b>&nbsp; assigned</div>
-  <button class="lock-btn" id="lock-btn" onclick="lockIn()">Lock In Lineup</button>
-</div>
 
 <div class="toast" id="toast"></div>
 
 <script type="module">
 import { PeraWalletConnect } from "https://esm.sh/@perawallet/connect@1";
 
-const FORMATIONS = {
-  OFFENSE:  {Striker:5, Mid:1, Guard:1},
-  BALANCED: {Striker:3, Mid:2, Guard:2},
-  DEFENSE:  {Striker:1, Mid:2, Guard:4},
-};
-const POSITION_STAT = {Striker:"VLT", Mid:"SPK", Guard:"INS"};
-const DISPLAY_NAME = {Striker:"Surge Back", Mid:"Conductor", Guard:"Guard"};
-const ROSTER_SIZE = 7;
-
-const HERO_IMAGE = {
-  Bear:      "https://ipfs-pera.algonode.dev/ipfs/bafkreidtl5ha7is6ze5lfgs6fpfagzvtpkjsx3327urgvge463c2kmimem?optimizer=image&width=200&quality=70",
-  Crocodile: "https://ipfs-pera.algonode.dev/ipfs/bafkreibelcalckqcxpabntsja6ejdsdbs7aqg6wtjjx7nr5swdaabkxcpe?optimizer=image&width=200&quality=70",
-  Cat:       "https://ipfs-pera.algonode.dev/ipfs/bafkreiendbzef6gm3idxel5xl5bcbzf6xofns3qfvlqx7jmg6eqdnjfjvu?optimizer=image&width=200&quality=70",
-  Rabbit:    "https://ipfs-pera.algonode.dev/ipfs/bafkreictcu7ipijiknqaofjhbubjjylxg26zrvjrgdheycubp44kgx2g4a?optimizer=image&width=200&quality=70",
-  Wolf:      "https://ipfs-pera.algonode.dev/ipfs/bafybeiez2pgydvo5bza6egakwxciqww6q62c4jeatd7agrwxsyut2lhqbm?optimizer=image&width=200&quality=70",
-  Frog:      "https://ipfs-pera.algonode.dev/ipfs/bafybeiap4ffb5ywlaifxz5lmj3wkqwsej6xwqdhwo3nll2nmww27rpashi?optimizer=image&width=200&quality=70",
-  Eagle:     "https://ipfs-pera.algonode.dev/ipfs/bafybeifg2ksv46ad7uwhtasjtkbqnbqvvbo64adbwczh24unjrtgjxp44q?optimizer=image&width=200&quality=70",
-  Buck:      "https://ipfs-pera.algonode.dev/ipfs/bafybeihumzywdl3eogvon3c7dwtmmcfxyi2in7a2ibfnkjekkfdxq6ydwq?optimizer=image&width=200&quality=70",
-  Snake:     "https://ipfs-pera.algonode.dev/ipfs/bafybeifgmwm45kg3hg3tan3hvrdqsh6e2jijrm2zuy2tnhhij6krvvzdda?optimizer=image&width=200&quality=70",
-  Shark:     "https://ipfs-pera.algonode.dev/ipfs/bafybeigtp5qmpaxgqvagk5cuty63i4vzsrwy3tc6s3ryoppvlekubzt5ki?optimizer=image&width=200&quality=70",
-};
-
-function avatarFor(seed, size=200){
-  let hash = 0;
-  const s = String(seed);
-  for (let i=0; i<s.length; i++){ hash = (hash * 31 + s.charCodeAt(i)) >>> 0; }
-  const hueA = hash % 360;
-  const hueB = (hueA + 40 + (hash % 60)) % 360;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 100 100">
-    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="hsl(${hueA},70%,55%)"/><stop offset="100%" stop-color="hsl(${hueB},70%,35%)"/>
-    </linearGradient></defs>
-    <rect width="100" height="100" fill="#151827"/>
-    <circle cx="50" cy="50" r="34" fill="url(#g)" opacity="0.9"/>
-    <path d="M53 22 L34 55 L47 55 L44 78 L68 45 L54 45 Z" fill="rgba(255,255,255,0.85)"/>
-  </svg>`;
-  return "data:image/svg+xml," + encodeURIComponent(svg);
-}
-function imgWithFallback(realUrl, assetId, cls, extra=""){
-  const fallback = avatarFor(assetId);
-  const src = realUrl || fallback;
-  return `<img class="${cls}" src="${src}" onerror="this.onerror=null; this.src='${fallback}';" alt="" ${extra}>`;
-}
-
-// ── State ──
 const peraWallet = new PeraWalletConnect();
 let accountAddress = null;
-let currentTeam = null;      // from get-my-team
-let currentSeason = null;    // from get-my-team
-let zappyStats = null;       // loaded once from zappy_stats.json
-let heldZappies = [];        // this wallet's real roster-eligible Zappies, with real stats
-let formation = "BALANCED";
-let activeTab = "Striker";
-let assignments = {Striker:[], Mid:[], Guard:[]};
 
-// ── Real deployment config ──
-const GUILD_ID = "1310425792349601985";
-const SUPABASE_URL = "https://texlxhkzsbvwvptjanhd.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRleGx4aGt6c2J2d3ZwdGphbmhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTU3MTYsImV4cCI6MjA4OTQzMTcxNn0.yihmxMxvdnV0zLaT8JVddT0zYd9MB3Ol9mj0Xnfl4KM";
-const FN_GET_MY_TEAM = "https://texlxhkzsbvwvptjanhd.supabase.co/functions/v1/get-my-team";
-const FN_REGISTER_TEAM = "https://texlxhkzsbvwvptjanhd.supabase.co/functions/v1/register-team";
-const FN_SUBMIT_LINEUP = "https://texlxhkzsbvwvptjanhd.supabase.co/functions/v1/submit-lineup";
 function toast(msg, isError=false){
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -340,566 +175,66 @@ function toast(msg, isError=false){
   el.classList.add('show');
   setTimeout(() => el.classList.remove('show'), isError ? 4500 : 2600);
 }
-function statusLine(msg){
-  const el = document.getElementById('status-line');
-  el.style.display = 'block';
-  el.textContent = msg;
+
+function setConnectedUI(address){
+  const navBtn = document.getElementById('wallet-btn');
+  navBtn.innerHTML = `<span class="dot"></span> ${address.slice(0,6)}…${address.slice(-4)}`;
+  navBtn.classList.add('connected');
+  navBtn.onclick = null;
+
+  const heroBtn = document.getElementById('hero-cta');
+  heroBtn.textContent = 'Continue to Lineup →';
+  document.getElementById('cta-sub').textContent = "You're connected — this takes you straight to your team.";
 }
 
-// ── Signing helper: builds a canonical message, signs it, returns the
-// three fields every edge function expects appended to a payload. Must
-// stay byte-for-byte in sync with each function's canonicalMessage(). ──
-async function signPayload(canonicalObj, humanMessage){
-  const message = JSON.stringify(canonicalObj);
-  const signedData = await peraWallet.signData(
-    [{ data: new TextEncoder().encode(message), message: humanMessage }],
-    accountAddress
-  );
-  return btoa(String.fromCharCode(...signedData[0]));
-}
+// The nav button always just connects (or does nothing once connected --
+// see setConnectedUI removing its onclick). The hero button's behavior
+// depends on connection state, so it's routed through this instead of
+// calling connectWallet() directly.
+window.heroCTA = function(){
+  if (accountAddress){
+    window.location.href = './lineup.html';
+    return;
+  }
+  connectWallet();
+};
 
-async function callFunction(url, payload){
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const result = await res.json();
-  return { status: res.status, result };
-}
-
-// ── Supabase REST reads (public policies only — see voltball_schema.sql) ──
-async function supabaseGet(path){
-  const url = `${SUPABASE_URL}/rest/v1/${path}`;
-  const res = await fetch(url, {
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      // Without this, PostgREST defaults to whichever schema is listed
-      // FIRST in the project's exposed-schemas config -- in this
-      // project that's graphql_public, not public, so every request
-      // silently 404'd looking for our tables in the wrong schema
-      // entirely. Confirmed directly: the raw REST error was
-      // "Could not find the table 'graphql_public.voltball_seasons'"
-      // -- not a permissions issue, not a missing table, just the
-      // wrong schema being searched. This header pins it to public
-      // explicitly, matching PostgREST's own documented behavior.
-      "Accept-Profile": "public",
-    },
-  });
-  if (!res.ok) throw new Error(`Supabase read failed: ${res.status}`);
-  return res.json();
-}
-
-// ── Wallet connect ──
 window.connectWallet = async function(){
-  const btn = document.getElementById('wallet-btn');
-  btn.textContent = "Connecting…";
-  btn.disabled = true;
+  const navBtn = document.getElementById('wallet-btn');
+  const heroBtn = document.getElementById('hero-cta');
+  const wasHeroLabel = heroBtn.textContent;
+  navBtn.textContent = "Connecting…";
+  navBtn.disabled = true;
+  heroBtn.textContent = "Connecting…";
+  heroBtn.disabled = true;
   try {
     const accounts = await peraWallet.connect();
     accountAddress = accounts[0];
     peraWallet.connector?.on("disconnect", () => location.reload());
-    btn.innerHTML = `<span class="dot"></span> ${accountAddress.slice(0,6)}…${accountAddress.slice(-4)}`;
-    btn.classList.add('connected');
-    btn.disabled = false;
-    await loadMyTeamAndRoster();
+    // Reconnecting on lineup.html picks this session straight back up
+    // (Pera's session lives in this origin's storage, not tied to a
+    // single page) -- no re-prompt needed on arrival.
+    window.location.href = './lineup.html';
   } catch (err) {
-    btn.textContent = "Connect Wallet";
-    btn.disabled = false;
+    navBtn.textContent = "Connect Wallet";
+    navBtn.disabled = false;
+    heroBtn.textContent = wasHeroLabel;
+    heroBtn.disabled = false;
     if (err?.data?.type !== "CONNECT_MODAL_CLOSED") toast("Wallet connect failed — see console.", true);
     console.error(err);
   }
 };
 
-// Real, precomputed stats for all 1678 Zappies — embedded directly
-// rather than fetched, since there's no hosting set up yet for local
-// desktop testing. This is the exact same data as zappy_stats.json;
-// once real hosting exists, swap this block for a fetch() the same
-// way loadZappyStats() used to work, so the file doesn't carry ~260KB
-// of data forever.
-// ZAPPY_STATS removed -- now fetched from ./zappy_stats.json instead of embedded
-
-async function loadZappyStats(){
-  if (zappyStats) return zappyStats;
-  const res = await fetch('./zappy_stats.json');
-  zappyStats = await res.json();
-  return zappyStats;
-}
-
-// ── Fetch this wallet's REAL held Zappies from the Algorand indexer
-// directly (public read, no auth needed), paginated properly, cross-
-// referenced against zappy_stats.json for real VLT/INS/SPK. ──
-async function fetchHeldZappies(address){
-  const stats = await loadZappyStats();
-  const held = [];
-  let nextToken = null;
-  do {
-    const url = `https://mainnet-idx.algonode.cloud/v2/accounts/${address}/assets?limit=1000${nextToken ? `&next=${nextToken}` : ''}`;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Indexer returned ${res.status}`);
-    const data = await res.json();
-    for (const asset of data.assets ?? []){
-      if ((asset.amount ?? 0) <= 0) continue;
-      const id = String(asset['asset-id']);
-      if (stats[id]){
-        held.push({ asset_id: asset['asset-id'], name: stats[id].name, image_url: stats[id].image_url,
-                     VLT: stats[id].VLT, INS: stats[id].INS, SPK: stats[id].SPK });
-      }
-    }
-    nextToken = data['next-token'] ?? null;
-  } while (nextToken);
-  return held;
-}
-
-// ── get-my-team: signed read, since wallet_address isn't public (see
-// voltball_schema.sql's notes on why voltball_teams has no blanket
-// public policy). ──
-async function getMyTeam(){
-  const guildId = GUILD_ID;
-  const timestamp = Math.floor(Date.now() / 1000);
-  const payload = { guild_id: guildId, timestamp };
-  const signature = await signPayload({ guild_id: guildId, timestamp }, "Check your Voltball team");
-  payload.address = accountAddress;
-  payload.signature = signature;
-  return callFunction(FN_GET_MY_TEAM, payload);
-}
-
-window.registerTeam = async function(){
-  const teamName = document.getElementById('new-team-name').value.trim();
-  if (!teamName){ toast("Enter a team name first.", true); return; }
-  const guildId = GUILD_ID;
-  const timestamp = Math.floor(Date.now() / 1000);
-  const payload = { guild_id: guildId, team_name: teamName, hero_asset_id: null, timestamp };
-  try {
-    const signature = await signPayload(payload, "Confirm your Voltball team registration");
-    payload.address = accountAddress;
-    payload.signature = signature;
-    const { status, result } = await callFunction(FN_REGISTER_TEAM, payload);
-    if (status === 200){
-      toast(`✓ ${result.team.team_name} registered!`);
-      clearCachedTeam(accountAddress); // a fresh team now exists, don't let a stale "no team" cache linger
-      await loadMyTeamAndRoster();
-    } else if (status === 300){
-      toast("Multiple Heroes held — pick one isn't wired into this UI yet.", true);
-    } else {
-      toast(`✗ ${result.error}`, true);
-    }
-  } catch (err) {
-    console.error(err);
-    toast("Registration failed — see console.", true);
-  }
-};
-
-// ── Team/season lookup caching ──
-// getMyTeam() requires a fresh wallet signature every call (the payload
-// includes a timestamp, so there's no way to reuse an old signature).
-// Without caching, that means signing on every single page load just to
-// check "do I have a team" -- real friction, and worse, if that signing
-// prompt is ever dismissed or fails, the whole load aborts BEFORE the
-// lineup-restoration check even runs (it depends on currentTeam being
-// set first), which looks exactly like "my roster wasn't saved" even
-// when it actually was.
-//
-// WHAT'S CACHED VS. ALWAYS FRESH: only "which team is mine" (team_id,
-// hero) is cached, for 7 days -- that genuinely doesn't change without
-// an explicit action (registering clears it immediately). The current
-// WEEK is never cached, even for a second -- it's fetched fresh every
-// load via a plain public read (voltball_seasons has a public policy,
-// so this needs no signature at all). Caching current_week for 7 days
-// would mean a lineup submission could silently use a days-stale week
-// number -- wrong week, or a week that's already resolved. That's a
-// correctness bug, not just staleness, so it's not on the table here.
-const TEAM_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-
-function teamCacheKey(address){ return `voltball_myteam_${GUILD_ID}_${address}`; }
-
-function getCachedTeam(address){
-  try {
-    const raw = localStorage.getItem(teamCacheKey(address));
-    if (!raw) return null;
-    const cached = JSON.parse(raw);
-    if (Date.now() - cached.cachedAt > TEAM_CACHE_TTL_MS) return null;
-    return cached.team;
-  } catch (err) {
-    console.error("Reading team cache failed (non-fatal):", err);
-    return null;
-  }
-}
-
-function setCachedTeam(address, team){
-  try {
-    localStorage.setItem(teamCacheKey(address), JSON.stringify({ team, cachedAt: Date.now() }));
-  } catch (err) {
-    console.error("Writing team cache failed (non-fatal):", err);
-  }
-}
-
-function clearCachedTeam(address){
-  try { localStorage.removeItem(teamCacheKey(address)); } catch (err) { /* non-fatal */ }
-}
-
-// Always a fresh, unsigned public read -- see the note above on why
-// current_week specifically is never cached.
-async function fetchCurrentSeason(){
-  const rows = await supabaseGet(`voltball_seasons?guild_id=eq.${GUILD_ID}&status=in.(active,upcoming)&order=status.asc&select=*`);
-  return rows?.[0] ?? null;
-}
-
-async function loadMyTeamAndRoster(){
-  statusLine("Checking for your team…");
-  document.getElementById('connect-gate').style.display = 'none';
-
-  try {
-    currentSeason = await fetchCurrentSeason();
-  } catch (err) {
-    console.error(err);
-    statusLine("");
-    toast("Couldn't load season info — see console.", true);
-    return;
-  }
-  if (!currentSeason){
-    statusLine("");
-    toast("No active or upcoming season for this guild.", true);
-    return;
-  }
-
-  let cachedTeam = getCachedTeam(accountAddress);
-  // A cached team from a PREVIOUS season is not valid for the current
-  // one -- each season needs its own registration. Without this check,
-  // a new season starting would silently keep showing an old team.
-  if (cachedTeam && cachedTeam.season_id !== currentSeason.id){
-    clearCachedTeam(accountAddress);
-    cachedTeam = null;
-  }
-
-  if (cachedTeam){
-    currentTeam = cachedTeam;
-  } else {
-    let getTeamResult;
-    try {
-      getTeamResult = await getMyTeam();
-    } catch (err) {
-      console.error(err);
-      statusLine("");
-      toast("Couldn't check your team — see console.", true);
-      return;
-    }
-
-    if (getTeamResult.status !== 200){
-      statusLine("");
-      toast(`✗ ${getTeamResult.result.error}`, true);
-      return;
-    }
-
-    currentTeam = getTeamResult.result.team;
-    if (currentTeam) setCachedTeam(accountAddress, currentTeam);
-  }
-
-  if (!currentTeam){
-
-    statusLine("");
-    document.getElementById('no-team-panel').style.display = 'block';
-    return;
-  }
-
-  document.getElementById('no-team-panel').style.display = 'none';
-  statusLine(`Loading your held Zappies…`);
-
-  try {
-    heldZappies = await fetchHeldZappies(accountAddress);
-  } catch (err) {
-    console.error(err);
-    statusLine("");
-    toast("Couldn't load your wallet's Zappies — see console.", true);
-    return;
-  }
-
-  statusLine("");
-  if (heldZappies.length < ROSTER_SIZE){
-    toast(`You hold ${heldZappies.length} roster-eligible Zappies — need at least ${ROSTER_SIZE} to set a lineup.`, true);
-    return;
-  }
-
-  document.getElementById('team-name-display').textContent = currentTeam.team_name;
-  document.getElementById('coach-name-display').textContent = currentTeam.hero_type;
-  document.getElementById('week-display').textContent = currentSeason.current_week;
-  const portrait = document.getElementById('coach-portrait');
-  const realHero = HERO_IMAGE[currentTeam.hero_type];
-  portrait.src = realHero || avatarFor(currentTeam.hero_type);
-  if (realHero) portrait.onerror = () => { portrait.onerror = null; portrait.src = avatarFor(currentTeam.hero_type); };
-
-  // Check for an already-submitted lineup THIS week — public read, no
-  // signature needed (voltball_lineups has a public policy). Without
-  // this, reloading the page after a successful submission showed an
-  // empty picker again with zero indication anything had been saved,
-  // which is the same underlying problem as the missed toast, just
-  // worse: it looked like nothing persisted at all, not just that the
-  // confirmation was easy to miss.
-  let existingLineup = null;
-  try {
-    const rows = await supabaseGet(`voltball_lineups?team_id=eq.${currentTeam.id}&week_number=eq.${currentSeason.current_week}&select=*`);
-    existingLineup = rows?.[0] ?? null;
-  } catch (err) {
-    console.error("Couldn't check for an existing lineup (non-fatal):", err);
-  }
-
-  document.getElementById('app').classList.add('visible');
-  document.getElementById('submit-bar').style.display = 'flex';
-
-  if (existingLineup){
-    formation = existingLineup.formation;
-    assignments = {Striker: [], Mid: [], Guard: []};
-    for (const pos of ["Striker","Mid","Guard"]){
-      for (const entry of existingLineup.assignments[pos] ?? []){
-        const z = heldZappies.find(h => h.asset_id === entry.asset_id);
-        // Fall back to the snapshot stored at submission time if this
-        // Zappy is somehow no longer in the live held list (sold since,
-        // etc.) — still show what was actually submitted, don't just drop it.
-        assignments[pos].push(z || { asset_id: entry.asset_id, name: entry.name, VLT: 0, INS: 0, SPK: 0, image_url: null });
-      }
-    }
-    render();
-    const lockBtn = document.getElementById('lock-btn');
-    lockBtn.textContent = '✓ Locked In';
-    lockBtn.disabled = true;
-    lockBtn.style.pointerEvents = 'none';
-    lockBtn.classList.remove('ready');
-    lockBtn.style.background = 'var(--guard)';
-    lockBtn.style.color = '#0B0D14';
-    lockBtn.style.cursor = 'default';
-    for (const item of document.querySelectorAll('#lanes .slot')) item.style.pointerEvents = 'none';
-    const badge = document.getElementById('locked-badge');
-    badge.style.display = 'inline';
-    badge.style.color = 'var(--guard)';
-    badge.textContent = `· ✓ Locked in (${formation})`;
-  } else {
-    render();
-  }
-}
-
-// ── Formation/roster picker (same interaction model as the original
-// prototype — this section is UI logic only, no data here is fake
-// anymore, it's all from heldZappies/currentTeam/currentSeason above). ──
-function fitTier(pct){
-  if (pct >= 90) return {label:"Elite", cls:"elite"};
-  if (pct >= 70) return {label:"Strong", cls:"strong"};
-  if (pct >= 40) return {label:"Solid", cls:"solid"};
-  return null;
-}
-// Percentile ranks are computed against the FULL 1678-Zappy collection
-// (ZAPPY_STATS), matching Discord's /voltball_scout, /voltball_zappy_lookup,
-// and /voltball_my_zappies exactly (voltball_position_fit.py's methodology).
-// An earlier version of this computed percentile only against the
-// wallet's OWN small held roster — meaning "Elite Guard" here could mean
-// something completely different from "Elite Guard" on Discord for the
-// exact same Zappy. Built once, cached, since the collection is static.
-let _collectionSortedStats = null;
-function collectionSortedStats(){
-  if (_collectionSortedStats) return _collectionSortedStats;
-  const vlt = [], ins = [], spk = [];
-  for (const z of Object.values(zappyStats)){ vlt.push(z.VLT); ins.push(z.INS); spk.push(z.SPK); }
-  vlt.sort((a,b)=>a-b); ins.sort((a,b)=>a-b); spk.sort((a,b)=>a-b);
-  _collectionSortedStats = { VLT: vlt, INS: ins, SPK: spk };
-  return _collectionSortedStats;
-}
-function percentileWithin(stat, value){
-  const sorted = collectionSortedStats()[stat];
-  // Binary search for count of values strictly less than `value` —
-  // matches voltball_position_fit.py's bisect_left approach exactly.
-  let lo = 0, hi = sorted.length;
-  while (lo < hi){
-    const mid = (lo + hi) >> 1;
-    if (sorted[mid] < value) lo = mid + 1; else hi = mid;
-  }
-  return Math.round(lo / sorted.length * 100);
-}
-function usedIds(){
-  return new Set([...assignments.Striker, ...assignments.Mid, ...assignments.Guard].map(z=>z.asset_id));
-}
-
-function renderFormations(){
-  const el = document.getElementById('formations');
-  el.innerHTML = Object.entries(FORMATIONS).map(([name, counts]) => `
-    <div class="formation-card ${name===formation?'active':''}" onclick="window.selectFormation('${name}')">
-      <div class="fname">${name}</div>
-      <div class="fcounts">
-        <span><span class="swatch" style="background:var(--striker)"></span>${counts.Striker} ${DISPLAY_NAME.Striker}</span>
-        <span><span class="swatch" style="background:var(--mid)"></span>${counts.Mid} ${DISPLAY_NAME.Mid}</span>
-        <span><span class="swatch" style="background:var(--guard)"></span>${counts.Guard} ${DISPLAY_NAME.Guard}</span>
-      </div>
-    </div>
-  `).join('');
-}
-window.selectFormation = function(name){
-  if (name === formation) return;
-  formation = name;
-  assignments = {Striker:[], Mid:[], Guard:[]};
-  render();
-};
-
-function renderLanes(){
-  const el = document.getElementById('lanes');
-  const counts = FORMATIONS[formation];
-  el.innerHTML = Object.entries(counts).map(([pos, count]) => {
-    const filled = assignments[pos];
-    let slots = '';
-    for (let i=0; i<count; i++){
-      const z = filled[i];
-      if (z){
-        slots += `<div class="slot filled">
-          ${imgWithFallback(z.image_url, z.asset_id, "zthumb")}
-          <span class="zname">${z.name}</span>
-          <span class="zstat">${POSITION_STAT[pos]} ${z[POSITION_STAT[pos]]}</span>
-          <span class="remove" onclick="window.unassign('${pos}', ${z.asset_id})">✕</span>
-        </div>`;
-      } else {
-        slots += `<div class="slot">+ empty</div>`;
-      }
-    }
-    return `<div class="lane" data-pos="${pos}">
-      <div class="lane-label">${DISPLAY_NAME[pos]}</div>
-      <div class="lane-sub">${POSITION_STAT[pos]} · ${filled.length}/${count}</div>
-      <div class="slots">${slots}</div>
-    </div>`;
-  }).join('');
-}
-
-function renderTabs(){
-  const el = document.getElementById('lane-tabs');
-  const counts = FORMATIONS[formation];
-  el.innerHTML = Object.keys(counts).map(pos => `
-    <div class="lane-tab ${pos===activeTab?'active':''}" data-pos="${pos}" onclick="window.setTab('${pos}')">${DISPLAY_NAME[pos]}</div>
-  `).join('');
-}
-window.setTab = function(pos){ activeTab = pos; render(); };
-
-function renderRoster(){
-  const grid = document.getElementById('roster-grid');
-  const used = usedIds();
-  const stat = POSITION_STAT[activeTab];
-  const sorted = [...heldZappies].sort((a,b) => b[stat] - a[stat]);
-  const needed = FORMATIONS[formation][activeTab];
-  const filledCount = assignments[activeTab].length;
-
-  document.getElementById('roster-hint').innerHTML =
-    `Sorted by <b style="color:var(--text)">${stat}</b> for <b style="color:var(--text)">${DISPLAY_NAME[activeTab]}</b> — click a card to assign it. ${filledCount>=needed ? `<span style="color:var(--guard)">This lane is full.</span>` : ''}`;
-
-  grid.innerHTML = sorted.map(z => {
-    const isUsed = used.has(z.asset_id);
-    const pct = percentileWithin(stat, z[stat]);
-    const tier = fitTier(pct);
-    return `<div class="zcard ${isUsed?'used':''}" onclick="${isUsed ? '' : `window.assign('${activeTab}', ${z.asset_id})`}">
-      ${imgWithFallback(z.image_url, z.asset_id, "zthumb", 'loading="lazy"')}
-      <div class="zbody">
-        <div class="zn">${z.name}</div>
-        <div class="zstats">
-          <span class="st ${stat==='VLT'?'hot':''}">VLT ${z.VLT}</span>
-          <span class="st ${stat==='INS'?'hot':''}">INS ${z.INS}</span>
-          <span class="st ${stat==='SPK'?'hot':''}">SPK ${z.SPK}</span>
-        </div>
-        ${tier ? `<div class="fit-badge ${tier.cls}">${tier.label} ${DISPLAY_NAME[activeTab]}</div>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-window.assign = function(pos, assetId){
-  const needed = FORMATIONS[formation][pos];
-  if (assignments[pos].length >= needed) return;
-  const z = heldZappies.find(r => r.asset_id === assetId);
-  assignments[pos].push(z);
-  render();
-};
-window.unassign = function(pos, assetId){
-  assignments[pos] = assignments[pos].filter(z => z.asset_id !== assetId);
-  render();
-};
-
-function renderSubmit(){
-  const total = Object.values(FORMATIONS[formation]).reduce((a,b)=>a+b,0);
-  const filled = assignments.Striker.length + assignments.Mid.length + assignments.Guard.length;
-  document.getElementById('progress-count').textContent = `${filled}/${total}`;
-  document.getElementById('lock-btn').classList.toggle('ready', filled === total);
-}
-
-function render(){
-  renderFormations();
-  renderLanes();
-  renderTabs();
-  renderRoster();
-  renderSubmit();
-}
-
-// ── Real submission — signs the actual lineup and POSTs to submit-lineup. ──
-window.lockIn = async function(){
-  const total = Object.values(FORMATIONS[formation]).reduce((a,b)=>a+b,0);
-  const filled = assignments.Striker.length + assignments.Mid.length + assignments.Guard.length;
-  if (filled !== total) return;
-
-  const assignmentsPayload = {};
-  for (const pos of ["Striker","Mid","Guard"]){
-    assignmentsPayload[pos] = assignments[pos].map(z => ({ asset_id: z.asset_id, name: z.name }));
-  }
-
-  const payload = {
-    team_id: currentTeam.id,
-    season_id: currentSeason.id,
-    week_number: currentSeason.current_week,
-    formation,
-    assignments: assignmentsPayload,
-    timestamp: Math.floor(Date.now() / 1000),
-  };
-
-  try {
-    const signature = await signPayload(
-      { team_id: payload.team_id, season_id: payload.season_id, week_number: payload.week_number, formation: payload.formation, assignments: payload.assignments, timestamp: payload.timestamp },
-      "Confirm your Voltball lineup"
-    );
-    payload.address = accountAddress;
-    payload.signature = signature;
-
-    const { status, result } = await callFunction(FN_SUBMIT_LINEUP, payload);
-    if (status === 200){
-      for (const item of document.querySelectorAll('#lanes .slot')) item.style.pointerEvents = 'none';
-
-      // Persistent confirmation, not just a toast that vanishes in a few
-      // seconds — the button itself now visibly changes (was previously
-      // just made non-interactive while looking completely unchanged,
-      // which is why this felt like it gave no acknowledgment at all).
-      const lockBtn = document.getElementById('lock-btn');
-      lockBtn.textContent = '✓ Locked In';
-      lockBtn.disabled = true;
-      lockBtn.style.pointerEvents = 'none';
-      lockBtn.classList.remove('ready');
-      lockBtn.style.background = 'var(--guard)';
-      lockBtn.style.color = '#0B0D14';
-      lockBtn.style.cursor = 'default';
-
-      const badge = document.getElementById('locked-badge');
-      badge.style.display = 'inline';
-      badge.style.color = 'var(--guard)';
-      badge.textContent = `· ✓ Locked in (${formation})`;
-
-      toast(`✓ Lineup locked in — running ${formation} this week.`);
-    } else {
-      toast(`✗ ${result.error}`, true);
-    }
-  } catch (err) {
-    console.error(err);
-    toast("Submission failed — see console.", true);
-  }
-};
-
-// Restore session on reload
-peraWallet.reconnectSession().then(async (accounts) => {
+// If a session already exists, reflect that here without forcing a
+// redirect -- someone landing on the home page (e.g. via the wordmark)
+// probably meant to land here, not get bounced straight to Lineup.
+peraWallet.reconnectSession().then((accounts) => {
   if (accounts.length){
     accountAddress = accounts[0];
     peraWallet.connector?.on("disconnect", () => location.reload());
-    const btn = document.getElementById('wallet-btn');
-    btn.innerHTML = `<span class="dot"></span> ${accountAddress.slice(0,6)}…${accountAddress.slice(-4)}`;
-    btn.classList.add('connected');
-    await loadMyTeamAndRoster();
+    setConnectedUI(accountAddress);
   }
 }).catch(() => {});
 </script>
+</body>
+</html>
