@@ -392,7 +392,7 @@ async function init(){
     const merged = standingsRows.map(s => ({
       ...s,
       team: teamsById[s.team_id] || { team_name: 'Unknown Team', hero_type: null, is_cpu: false },
-      diff: (s.points_for ?? 0) - (s.points_against ?? 0),
+      diff: Math.round(((s.points_for ?? 0) - (s.points_against ?? 0)) * 10) / 10,
     }));
 
     // Rank: wins desc, then point differential desc, then points_for desc.
