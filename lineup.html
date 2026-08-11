@@ -17,6 +17,7 @@
     --striker: #E8FF3C;
     --mid: #7B5CFF;
     --guard: #2DE1C2;
+    --qb: #FF9F40;
     --alert: #FF3D6E;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
@@ -140,6 +141,7 @@
     text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px;
   }
   .lane-sub{ font-size:11px; color:var(--text-dim); margin-bottom:14px; }
+  .lane[data-pos="QB"] .lane-label{ color:var(--qb); }
   .lane[data-pos="Striker"] .lane-label{ color:var(--striker); }
   .lane[data-pos="Mid"] .lane-label{ color:var(--mid); }
   .lane[data-pos="Guard"] .lane-label{ color:var(--guard); }
@@ -153,6 +155,7 @@
   }
   .slot:hover{ border-color:#4a4f6a; }
   .slot.filled{ border-style:solid; cursor:default; padding:0 10px; justify-content:space-between; }
+  .lane[data-pos="QB"] .slot.filled{ border-color:var(--qb); background:rgba(255,159,64,0.08); box-shadow:0 0 14px rgba(255,159,64,0.15) inset; }
   .lane[data-pos="Striker"] .slot.filled{ border-color:var(--striker); background:rgba(232,255,60,0.06); box-shadow:0 0 14px rgba(232,255,60,0.12) inset; }
   .lane[data-pos="Mid"] .slot.filled{ border-color:var(--mid); background:rgba(123,92,255,0.08); box-shadow:0 0 14px rgba(123,92,255,0.15) inset; }
   .lane[data-pos="Guard"] .slot.filled{ border-color:var(--guard); background:rgba(45,225,194,0.06); box-shadow:0 0 14px rgba(45,225,194,0.12) inset; }
@@ -168,6 +171,7 @@
     font-family:'Chakra Petch',sans-serif; font-size:12px; font-weight:600; padding:7px 14px;
     border-radius:20px; border:1px solid var(--line); cursor:pointer; color:var(--text-dim); transition: all .15s ease;
   }
+  .lane-tab.active[data-pos="QB"]{ border-color:var(--qb); color:var(--qb); background:rgba(255,159,64,0.1); }
   .lane-tab.active[data-pos="Striker"]{ border-color:var(--striker); color:var(--striker); background:rgba(232,255,60,0.08); }
   .lane-tab.active[data-pos="Mid"]{ border-color:var(--mid); color:var(--mid); background:rgba(123,92,255,0.1); }
   .lane-tab.active[data-pos="Guard"]{ border-color:var(--guard); color:var(--guard); background:rgba(45,225,194,0.08); }
@@ -332,13 +336,13 @@
 import { PeraWalletConnect } from "https://esm.sh/@perawallet/connect@1";
 
 const FORMATIONS = {
-  OFFENSE:  {Striker:5, Mid:1, Guard:1},
-  BALANCED: {Striker:3, Mid:2, Guard:2},
-  DEFENSE:  {Striker:1, Mid:2, Guard:4},
+  OFFENSE:  {QB:1, Striker:5, Mid:1, Guard:1},
+  BALANCED: {QB:1, Striker:3, Mid:2, Guard:2},
+  DEFENSE:  {QB:1, Striker:1, Mid:2, Guard:4},
 };
-const POSITION_STAT = {Striker:"VLT", Mid:"SPK", Guard:"INS"};
-const DISPLAY_NAME = {Striker:"Surge Back", Mid:"Conductor", Guard:"Guard"};
-const ROSTER_SIZE = 7;
+const POSITION_STAT = {QB:"SPK", Striker:"VLT", Mid:"SPK", Guard:"INS"};
+const DISPLAY_NAME = {QB:"QB", Striker:"Surge Back", Mid:"Conductor", Guard:"Guard"};
+const ROSTER_SIZE = 8;
 
 const HERO_IMAGE = {
   Bear:      "https://ipfs-pera.algonode.dev/ipfs/bafkreidtl5ha7is6ze5lfgs6fpfagzvtpkjsx3327urgvge463c2kmimem?optimizer=image&width=200&quality=70",
@@ -385,7 +389,7 @@ let heldZappies = [];        // this wallet's real roster-eligible Zappies, with
 let formation = "BALANCED";
 let tempo = 5.5;
 let activeTab = "Striker";
-let assignments = {Striker:[], Mid:[], Guard:[]};
+let assignments = {QB:[], Striker:[], Mid:[], Guard:[]};
 
 // ── Real deployment config ──
 const GUILD_ID = "1310425792349601985";
@@ -741,8 +745,8 @@ async function loadMyTeamAndRoster(){
     document.getElementById('tempo-slider').value = tempo;
     window.onTempoChange(tempo);
     document.getElementById('tempo-slider').disabled = true;
-    assignments = {Striker: [], Mid: [], Guard: []};
-    for (const pos of ["Striker","Mid","Guard"]){
+    assignments = {QB: [], Striker: [], Mid: [], Guard: []};
+    for (const pos of ["QB","Striker","Mid","Guard"]){
       for (const entry of existingLineup.assignments[pos] ?? []){
         const z = heldZappies.find(h => h.asset_id === entry.asset_id);
         // Fall back to the snapshot stored at submission time if this
@@ -807,7 +811,7 @@ function percentileWithin(stat, value){
   return Math.round(lo / sorted.length * 100);
 }
 function usedIds(){
-  return new Set([...assignments.Striker, ...assignments.Mid, ...assignments.Guard].map(z=>z.asset_id));
+  return new Set([...assignments.QB, ...assignments.Striker, ...assignments.Mid, ...assignments.Guard].map(z=>z.asset_id));
 }
 
 function renderFormations(){
@@ -840,7 +844,7 @@ window.onTempoChange = function(val){
 window.selectFormation = function(name){
   if (name === formation) return;
   formation = name;
-  assignments = {Striker:[], Mid:[], Guard:[]};
+  assignments = {QB:[], Striker:[], Mid:[], Guard:[]};
   render();
 };
 
@@ -924,7 +928,7 @@ window.unassign = function(pos, assetId){
 
 function renderSubmit(){
   const total = Object.values(FORMATIONS[formation]).reduce((a,b)=>a+b,0);
-  const filled = assignments.Striker.length + assignments.Mid.length + assignments.Guard.length;
+  const filled = assignments.QB.length + assignments.Striker.length + assignments.Mid.length + assignments.Guard.length;
   document.getElementById('progress-count').textContent = `${filled}/${total}`;
   document.getElementById('lock-btn').classList.toggle('ready', filled === total);
 }
@@ -940,11 +944,11 @@ function render(){
 // ── Real submission — signs the actual lineup and POSTs to submit-lineup. ──
 window.lockIn = async function(){
   const total = Object.values(FORMATIONS[formation]).reduce((a,b)=>a+b,0);
-  const filled = assignments.Striker.length + assignments.Mid.length + assignments.Guard.length;
+  const filled = assignments.QB.length + assignments.Striker.length + assignments.Mid.length + assignments.Guard.length;
   if (filled !== total) return;
 
   const assignmentsPayload = {};
-  for (const pos of ["Striker","Mid","Guard"]){
+  for (const pos of ["QB","Striker","Mid","Guard"]){
     assignmentsPayload[pos] = assignments[pos].map(z => ({ asset_id: z.asset_id, name: z.name }));
   }
 
