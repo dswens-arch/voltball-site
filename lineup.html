@@ -86,6 +86,30 @@
   .section-title::after{ content:''; flex:1; height:1px; background:var(--line); }
 
   .formations{ display:grid; grid-template-columns: repeat(3,1fr); gap:12px; margin-bottom:36px; }
+
+  .tempo-dial{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px 22px; margin-bottom:36px; }
+  .tempo-dial input[type="range"]{
+    width:100%; -webkit-appearance:none; appearance:none; height:6px; border-radius:3px;
+    background: linear-gradient(90deg, var(--guard), var(--mid) 50%, var(--striker));
+    outline:none; margin:10px 0 6px; cursor:pointer;
+  }
+  .tempo-dial input[type="range"]:disabled{ cursor:default; opacity:0.6; }
+  .tempo-dial input[type="range"]::-webkit-slider-thumb{
+    -webkit-appearance:none; appearance:none; width:20px; height:20px; border-radius:50%;
+    background:#fff; border:3px solid var(--bg); box-shadow:0 0 0 2px var(--line); cursor:pointer;
+  }
+  .tempo-dial input[type="range"]::-moz-range-thumb{
+    width:20px; height:20px; border-radius:50%; background:#fff; border:3px solid var(--bg); box-shadow:0 0 0 2px var(--line); cursor:pointer;
+  }
+  .tempo-readout{ display:flex; align-items:baseline; gap:10px; margin-top:8px; }
+  .tempo-readout #tempo-value{ font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:22px; }
+  .tempo-bucket{
+    font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:0.05em;
+    padding:3px 10px; border-radius:20px; background:var(--panel-2); color:var(--text-dim);
+  }
+  .tempo-bucket.aggressive{ background:rgba(232,255,60,0.12); color:var(--striker); }
+  .tempo-bucket.controlled{ background:rgba(45,225,194,0.12); color:var(--guard); }
+  .tempo-scale-labels{ display:flex; justify-content:space-between; font-size:10px; color:var(--text-dim); margin-top:2px; }
   .formation-card{
     background:var(--panel); border:1px solid var(--line); border-radius:10px;
     padding:16px; cursor:pointer; transition: all .15s ease;
@@ -227,6 +251,7 @@
   <div class="nav-right">
     <div class="nav-links">
       <a class="nav-link active" href="./lineup.html">Lineup</a>
+      <a class="nav-link" href="./scout.html">Scout</a>
       <a class="nav-link" href="./standings.html">Standings</a>
     </div>
     <button class="wallet-btn" id="wallet-btn" onclick="connectWallet()">Connect Wallet</button>
@@ -270,6 +295,17 @@
     <div class="section-title">Formation</div>
     <div style="font-size:11px; color:var(--text-dim); margin:-16px 0 20px;">Thumbnails try to load the real Zappy art first — if you see colored circles instead, your browser couldn't reach the IPFS gateway.</div>
     <div class="formations" id="formations"></div>
+
+    <div class="section-title">Tempo</div>
+    <div style="font-size:11px; color:var(--text-dim); margin:-16px 0 20px;">1 = Controlled (smaller swings, better average) · 10 = Aggressive (bigger swings, worse average). 5.5 is Standard.</div>
+    <div class="tempo-dial">
+      <input type="range" id="tempo-slider" min="1" max="10" step="0.5" value="5.5" oninput="window.onTempoChange(this.value)">
+      <div class="tempo-scale-labels"><span>1 · Controlled</span><span>10 · Aggressive</span></div>
+      <div class="tempo-readout">
+        <span id="tempo-value">5.5</span>
+        <span id="tempo-bucket" class="tempo-bucket">Standard</span>
+      </div>
+    </div>
 
     <div class="section-title">Field</div>
     <div class="field">
@@ -347,6 +383,7 @@ let currentSeason = null;    // from get-my-team
 let zappyStats = null;       // loaded once from zappy_stats.json
 let heldZappies = [];        // this wallet's real roster-eligible Zappies, with real stats
 let formation = "BALANCED";
+let tempo = 5.5;
 let activeTab = "Striker";
 let assignments = {Striker:[], Mid:[], Guard:[]};
 
@@ -673,12 +710,12 @@ async function loadMyTeamAndRoster(){
   }
 
   document.getElementById('team-name-display').textContent = currentTeam.team_name;
-  document.getElementById('coach-name-display').textContent = currentTeam.hero_type;
+  document.getElementById('coach-name-display').textContent = currentTeam.hero_type || 'No Coach';
   document.getElementById('week-display').textContent = currentSeason.current_week;
   const portrait = document.getElementById('coach-portrait');
   const realHero = HERO_IMAGE[currentTeam.hero_type];
-  portrait.src = realHero || avatarFor(currentTeam.hero_type);
-  if (realHero) portrait.onerror = () => { portrait.onerror = null; portrait.src = avatarFor(currentTeam.hero_type); };
+  portrait.src = realHero || avatarFor(currentTeam.hero_type || currentTeam.id);
+  if (realHero) portrait.onerror = () => { portrait.onerror = null; portrait.src = avatarFor(currentTeam.hero_type || currentTeam.id); };
 
   // Check for an already-submitted lineup THIS week — public read, no
   // signature needed (voltball_lineups has a public policy). Without
@@ -700,6 +737,10 @@ async function loadMyTeamAndRoster(){
 
   if (existingLineup){
     formation = existingLineup.formation;
+    tempo = existingLineup.tempo != null ? parseFloat(existingLineup.tempo) : 5.5;
+    document.getElementById('tempo-slider').value = tempo;
+    window.onTempoChange(tempo);
+    document.getElementById('tempo-slider').disabled = true;
     assignments = {Striker: [], Mid: [], Guard: []};
     for (const pos of ["Striker","Mid","Guard"]){
       for (const entry of existingLineup.assignments[pos] ?? []){
@@ -723,7 +764,7 @@ async function loadMyTeamAndRoster(){
     const badge = document.getElementById('locked-badge');
     badge.style.display = 'inline';
     badge.style.color = 'var(--guard)';
-    badge.textContent = `· ✓ Locked in (${formation})`;
+    badge.textContent = `· ✓ Locked in (${formation} / tempo ${tempo})`;
   } else {
     render();
   }
@@ -782,6 +823,20 @@ function renderFormations(){
     </div>
   `).join('');
 }
+// Mirrors voltball_engine.py's tempo_label() exactly — same thresholds,
+// so the bucket shown here always matches what Discord/embeds would call it.
+window.onTempoChange = function(val){
+  tempo = parseFloat(val);
+  document.getElementById('tempo-value').textContent = tempo.toFixed(1).replace(/\.0$/, '');
+  const bucketEl = document.getElementById('tempo-bucket');
+  let bucket, cls;
+  if (tempo <= 3.0) { bucket = 'Controlled'; cls = 'controlled'; }
+  else if (tempo >= 8.0) { bucket = 'Aggressive'; cls = 'aggressive'; }
+  else { bucket = 'Standard'; cls = ''; }
+  bucketEl.textContent = bucket;
+  bucketEl.className = 'tempo-bucket' + (cls ? ' ' + cls : '');
+};
+
 window.selectFormation = function(name){
   if (name === formation) return;
   formation = name;
@@ -909,10 +964,21 @@ window.lockIn = async function(){
     );
     payload.address = accountAddress;
     payload.signature = signature;
+    // tempo is intentionally NOT part of the signed canonical object
+    // above — it's appended after signing, same as address/signature.
+    // Low-stakes by design: tempo only affects the coach's own match
+    // outcome, not anyone else's, so it doesn't need the same
+    // wallet-authorization guarantee formation/assignments do. BUT:
+    // submit-lineup (the edge function) needs updating to actually
+    // read and persist payload.tempo — as of this commit it doesn't
+    // know this field exists, so this line is ready for that update
+    // but won't do anything until it ships server-side.
+    payload.tempo = tempo;
 
     const { status, result } = await callFunction(FN_SUBMIT_LINEUP, payload);
     if (status === 200){
       for (const item of document.querySelectorAll('#lanes .slot')) item.style.pointerEvents = 'none';
+      document.getElementById('tempo-slider').disabled = true;
 
       // Persistent confirmation, not just a toast that vanishes in a few
       // seconds — the button itself now visibly changes (was previously
@@ -930,9 +996,9 @@ window.lockIn = async function(){
       const badge = document.getElementById('locked-badge');
       badge.style.display = 'inline';
       badge.style.color = 'var(--guard)';
-      badge.textContent = `· ✓ Locked in (${formation})`;
+      badge.textContent = `· ✓ Locked in (${formation} / tempo ${tempo})`;
 
-      toast(`✓ Lineup locked in — running ${formation} this week.`);
+      toast(`✓ Lineup locked in — running ${formation} / tempo ${tempo} this week.`);
     } else {
       toast(`✗ ${result.error}`, true);
     }
