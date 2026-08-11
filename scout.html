@@ -39,13 +39,34 @@
   }
   .wordmark{ display:flex; align-items:center; gap:10px; font-size:20px; color:inherit; cursor:pointer; text-decoration:none; }
   .wordmark .bolt{ color:var(--striker); font-size:22px; filter: drop-shadow(0 0 8px rgba(232,255,60,0.6)); }
-  .nav-links{ display:flex; align-items:center; gap:22px; }
+  .nav-links{ display:flex; align-items:center; gap:22px; margin-right:20px; }
   .nav-link{
     font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:13px; letter-spacing:0.03em;
     color:var(--text-dim); text-decoration:none; padding:6px 2px; border-bottom:2px solid transparent; transition: all .15s ease;
   }
   .nav-link:hover{ color:var(--text); }
   .nav-link.active{ color:var(--striker); border-color:var(--striker); }
+  .nav-right{ display:flex; align-items:center; }
+  .wallet-btn{
+    background: var(--striker); color:#0B0D14; border:none; border-radius:6px;
+    padding: 10px 20px; font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:14px;
+    cursor:pointer; letter-spacing:0.02em; transition: all .15s ease; white-space:nowrap;
+  }
+  .wallet-btn:hover{ box-shadow: 0 0 24px rgba(232,255,60,0.4); transform: translateY(-1px); }
+  .wallet-btn.connected{
+    background:var(--panel-2); color:var(--guard); border:1px solid var(--guard);
+    display:flex; align-items:center; gap:8px; cursor:default;
+  }
+  .wallet-btn.connected:hover{ box-shadow:none; transform:none; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--guard); box-shadow:0 0 8px var(--guard); }
+
+  .toast{
+    position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-10px); opacity:0;
+    background:var(--panel-2); border:1px solid var(--guard); color:var(--guard);
+    padding:12px 22px; border-radius:8px; font-size:13px; font-weight:500; z-index:100;
+    transition: all .3s ease; pointer-events:none;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
   main{ max-width: 980px; margin: 0 auto; padding: 40px 24px 0; }
 
@@ -82,6 +103,11 @@
     font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--text-dim);
     border:1px solid var(--line); border-radius:4px; padding:1px 5px; margin-left:6px; vertical-align:middle;
   }
+  .you-tag{
+    font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:9px; letter-spacing:0.04em; color:#0B0D14;
+    background:var(--striker); border-radius:4px; padding:1px 6px; margin-left:6px; vertical-align:middle;
+  }
+  .team-panel.your-team{ border-color:var(--striker); box-shadow: 0 0 0 1px var(--striker), 0 0 20px rgba(232,255,60,0.08); }
   .formation-tag{
     margin-left:auto; font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:11px; letter-spacing:0.04em;
     text-transform:uppercase; padding:5px 12px; border-radius:20px; background:var(--panel-2); color:var(--text);
@@ -113,8 +139,11 @@
     nav{ padding: 14px 16px; }
     .wordmark{ font-size:16px; gap:7px; }
     .wordmark .bolt{ font-size:17px; }
-    .nav-links{ gap:16px; }
+    .nav-right{ flex-direction:column; align-items:flex-end; gap:8px; }
+    .nav-links{ gap:16px; margin-right:0; }
     .nav-link{ font-size:11px; }
+    .wallet-btn{ font-size:12px; padding:8px 14px; }
+    .wallet-btn.connected{ font-size:11px; padding:7px 12px; }
     .lanes-scout{ grid-template-columns: 1fr; }
     .team-panel-header{ flex-wrap:wrap; }
     .formation-tag{ margin-left:0; }
@@ -125,10 +154,13 @@
 
 <nav>
   <a class="wordmark" href="./index.html"><span class="bolt">⚡</span><span class="display">VOLTBALL</span></a>
-  <div class="nav-links">
-    <a class="nav-link" href="./lineup.html">Lineup</a>
-    <a class="nav-link active" href="./scout.html">Scout</a>
-    <a class="nav-link" href="./standings.html">Standings</a>
+  <div class="nav-right">
+    <div class="nav-links">
+      <a class="nav-link" href="./lineup.html">Lineup</a>
+      <a class="nav-link active" href="./scout.html">Scout</a>
+      <a class="nav-link" href="./standings.html">Standings</a>
+    </div>
+    <button class="wallet-btn" id="wallet-btn" onclick="connectWallet()">Connect Wallet</button>
   </div>
 </nav>
 
@@ -148,10 +180,22 @@
   <div id="teams-wrap"></div>
 </main>
 
+<div class="toast" id="toast"></div>
+
 <script type="module">
+import { PeraWalletConnect } from "https://esm.sh/@perawallet/connect@1";
+
 const GUILD_ID = "1310425792349601985";
 const SUPABASE_URL = "https://texlxhkzsbvwvptjanhd.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRleGx4aGt6c2J2d3ZwdGphbmhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTU3MTYsImV4cCI6MjA4OTQzMTcxNn0.yihmxMxvdnV0zLaT8JVddT0zYd9MB3Ol9mj0Xnfl4KM";
+const FN_GET_MY_TEAM = "https://texlxhkzsbvwvptjanhd.supabase.co/functions/v1/get-my-team";
+
+// ── Wallet state — only used to find & highlight "your" panel. Scout
+// itself never needed a wallet; this is purely additive. ──
+const peraWallet = new PeraWalletConnect();
+let accountAddress = null;
+let currentSeason = null;   // set inside init(), read by resolveAndHighlightMyTeam()
+let myTeamId = null;
 
 const FORMATIONS = {
   OFFENSE:  {QB:1, Striker:5, Mid:1, Guard:1},
@@ -203,6 +247,69 @@ async function supabaseGet(path){
   });
   if (!res.ok) throw new Error(`Supabase read failed: ${res.status}`);
   return res.json();
+}
+
+async function signPayload(canonicalObj, humanMessage){
+  const message = JSON.stringify(canonicalObj);
+  const signedData = await peraWallet.signData(
+    [{ data: new TextEncoder().encode(message), message: humanMessage }],
+    accountAddress
+  );
+  return btoa(String.fromCharCode(...signedData[0]));
+}
+
+async function callFunction(url, payload){
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const result = await res.json();
+  return { status: res.status, result };
+}
+
+function toast(msg, isError=false){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = isError ? 'var(--alert)' : 'var(--guard)';
+  el.style.color = isError ? 'var(--alert)' : 'var(--guard)';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), isError ? 4500 : 2600);
+}
+
+// Same key scheme as lineup.html/standings.html, same localStorage,
+// same origin — a team already resolved on another page is reused
+// here without asking for another signature.
+const TEAM_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+function teamCacheKey(address){ return `voltball_myteam_${GUILD_ID}_${address}`; }
+function getCachedTeam(address){
+  try {
+    const raw = localStorage.getItem(teamCacheKey(address));
+    if (!raw) return null;
+    const cached = JSON.parse(raw);
+    if (Date.now() - cached.cachedAt > TEAM_CACHE_TTL_MS) return null;
+    return cached.team;
+  } catch (err) {
+    console.error("Reading team cache failed (non-fatal):", err);
+    return null;
+  }
+}
+function setCachedTeam(address, team){
+  try {
+    localStorage.setItem(teamCacheKey(address), JSON.stringify({ team, cachedAt: Date.now() }));
+  } catch (err) {
+    console.error("Writing team cache failed (non-fatal):", err);
+  }
+}
+
+async function getMyTeam(){
+  const guildId = GUILD_ID;
+  const timestamp = Math.floor(Date.now() / 1000);
+  const payload = { guild_id: guildId, timestamp };
+  const signature = await signPayload({ guild_id: guildId, timestamp }, "Check your Voltball team");
+  payload.address = accountAddress;
+  payload.signature = signature;
+  return callFunction(FN_GET_MY_TEAM, payload);
 }
 
 let zappyStats = null;
@@ -257,6 +364,7 @@ async function init(){
       `voltball_seasons?guild_id=eq.${GUILD_ID}&order=created_at.desc&limit=1&select=*`
     );
     const season = seasons[0];
+    currentSeason = season; // exposed at module scope for resolveAndHighlightMyTeam()
 
     if (!season){
       document.getElementById('loading').style.display = 'none';
@@ -315,7 +423,7 @@ async function init(){
         body = `<div class="placeholder-note">⏳ No lineup submitted yet.</div>`;
       }
 
-      return `<div class="team-panel">
+      return `<div class="team-panel" data-team-id="${team.id}">
         <div class="team-panel-header">
           <img src="${heroImg}" onerror="this.onerror=null; this.src='${avatarFor(team.id)}';" alt="">
           <div>
@@ -338,7 +446,89 @@ async function init(){
   }
 }
 
-init();
+// Kicked off immediately — the team list loads and renders with zero
+// dependency on wallet state. The promise is awaited by the wallet
+// flow below purely so "highlight my panel" waits until there's a
+// panel to highlight and a season to validate the cached team against.
+const seasonLoadPromise = init();
+
+// ── Wallet connect — purely additive to panel highlighting. Nothing
+// about Scout depends on this ever succeeding. ──
+window.connectWallet = async function(){
+  const btn = document.getElementById('wallet-btn');
+  btn.textContent = "Connecting…";
+  btn.disabled = true;
+  try {
+    const accounts = await peraWallet.connect();
+    accountAddress = accounts[0];
+    peraWallet.connector?.on("disconnect", () => location.reload());
+    btn.innerHTML = `<span class="dot"></span> ${accountAddress.slice(0,6)}…${accountAddress.slice(-4)}`;
+    btn.classList.add('connected');
+    btn.disabled = false;
+    resolveAndHighlightMyTeam();
+  } catch (err) {
+    btn.textContent = "Connect Wallet";
+    btn.disabled = false;
+    if (err?.data?.type !== "CONNECT_MODAL_CLOSED") toast("Wallet connect failed — see console.", true);
+    console.error(err);
+  }
+};
+
+async function resolveAndHighlightMyTeam(){
+  await seasonLoadPromise;
+  if (!currentSeason) return; // no season at all -- nothing to match against
+
+  let team = getCachedTeam(accountAddress);
+  // A cached team from a previous season doesn't apply to this one --
+  // same invalidation rule as the other pages.
+  if (team && team.season_id !== currentSeason.id){
+    team = null;
+  }
+
+  if (!team){
+    try {
+      const { status, result } = await getMyTeam();
+      if (status === 200 && result.team){
+        team = result.team;
+        setCachedTeam(accountAddress, team);
+      }
+    } catch (err) {
+      console.error(err);
+      return; // non-critical -- Scout stays fully usable without a highlight
+    }
+  }
+
+  if (!team) return; // wallet connected, but no team registered this season
+  myTeamId = team.id;
+  highlightMyTeamPanel();
+}
+
+function highlightMyTeamPanel(){
+  if (!myTeamId) return;
+  const panel = document.querySelector(`.team-panel[data-team-id="${myTeamId}"]`);
+  if (!panel) return;
+  panel.classList.add('your-team');
+  const nameEl = panel.querySelector('.team-panel-name');
+  if (nameEl && !nameEl.querySelector('.you-tag')){
+    const tag = document.createElement('span');
+    tag.className = 'you-tag';
+    tag.textContent = 'YOU';
+    nameEl.appendChild(tag);
+  }
+}
+
+// Restore session on reload — same pattern as the other pages.
+peraWallet.reconnectSession().then(async (accounts) => {
+  if (accounts.length){
+    accountAddress = accounts[0];
+    peraWallet.connector?.on("disconnect", () => location.reload());
+    const btn = document.getElementById('wallet-btn');
+    btn.innerHTML = `<span class="dot"></span> ${accountAddress.slice(0,6)}…${accountAddress.slice(-4)}`;
+    btn.classList.add('connected');
+    resolveAndHighlightMyTeam();
+  }
+}).catch(() => {});
+
 </script>
 </body>
 </html>
