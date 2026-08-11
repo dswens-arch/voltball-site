@@ -135,6 +135,7 @@
     background-size: 24px 24px;
   }
   .lanes{ display:grid; grid-template-columns: repeat(3,1fr); gap:18px; position:relative; }
+  .lane[data-pos="QB"]{ grid-column: 1 / -1; max-width: 360px; margin: 0 auto; }
   .lane{ text-align:center; }
   .lane-label{
     font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:13px;
@@ -235,6 +236,7 @@
 
   @media (max-width: 700px){
     .lanes{ grid-template-columns: 1fr; }
+    .lane[data-pos="QB"]{ max-width: none; margin: 0; }
     .formations{ grid-template-columns: 1fr; }
 
     nav{ padding: 14px 16px; }
