@@ -158,6 +158,7 @@
   <div class="nav-right">
     <div class="nav-links">
       <a class="nav-link" href="./lineup.html">Lineup</a>
+      <a class="nav-link" href="./scout.html">Scout</a>
       <a class="nav-link active" href="./standings.html">Standings</a>
     </div>
     <button class="wallet-btn" id="wallet-btn" onclick="connectWallet()">Connect Wallet</button>
@@ -415,7 +416,7 @@ async function init(){
             <img src="${heroImg}" onerror="this.onerror=null; this.src='${avatarFor(team.id || i)}';" alt="">
             <div>
               <div class="tname">${team.team_name}${team.is_cpu ? '<span class="cpu-tag">CPU</span>' : ''}</div>
-              <div class="thero">${team.hero_type || ''}</div>
+              <div class="thero">${team.hero_type || 'No Coach'}</div>
             </div>
           </div>
         </td>
