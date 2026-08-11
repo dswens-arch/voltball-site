@@ -17,6 +17,7 @@
     --striker: #E8FF3C;
     --mid: #7B5CFF;
     --guard: #2DE1C2;
+    --qb: #FF9F40;
     --alert: #FF3D6E;
   }
   *{box-sizing:border-box; margin:0; padding:0;}
@@ -90,11 +91,12 @@
   .team-panel-body{ padding:16px 20px 20px; }
   .placeholder-note{ font-size:13px; color:var(--text-dim); font-style:italic; }
 
-  .lanes-scout{ display:grid; grid-template-columns: repeat(3,1fr); gap:14px; }
+  .lanes-scout{ display:grid; grid-template-columns: repeat(4,1fr); gap:14px; }
   .lane-scout-label{
     font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:11px; text-transform:uppercase;
     letter-spacing:0.06em; margin-bottom:8px;
   }
+  .lane-scout[data-pos="QB"] .lane-scout-label{ color:var(--qb); }
   .lane-scout[data-pos="Striker"] .lane-scout-label{ color:var(--striker); }
   .lane-scout[data-pos="Mid"] .lane-scout-label{ color:var(--mid); }
   .lane-scout[data-pos="Guard"] .lane-scout-label{ color:var(--guard); }
@@ -152,12 +154,12 @@ const SUPABASE_URL = "https://texlxhkzsbvwvptjanhd.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRleGx4aGt6c2J2d3ZwdGphbmhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTU3MTYsImV4cCI6MjA4OTQzMTcxNn0.yihmxMxvdnV0zLaT8JVddT0zYd9MB3Ol9mj0Xnfl4KM";
 
 const FORMATIONS = {
-  OFFENSE:  {Striker:5, Mid:1, Guard:1},
-  BALANCED: {Striker:3, Mid:2, Guard:2},
-  DEFENSE:  {Striker:1, Mid:2, Guard:4},
+  OFFENSE:  {QB:1, Striker:5, Mid:1, Guard:1},
+  BALANCED: {QB:1, Striker:3, Mid:2, Guard:2},
+  DEFENSE:  {QB:1, Striker:1, Mid:2, Guard:4},
 };
-const POSITION_STAT = {Striker:"VLT", Mid:"SPK", Guard:"INS"};
-const DISPLAY_NAME = {Striker:"Surge Back", Mid:"Conductor", Guard:"Guard"};
+const POSITION_STAT = {QB:"SPK", Striker:"VLT", Mid:"SPK", Guard:"INS"};
+const DISPLAY_NAME = {QB:"QB", Striker:"Surge Back", Mid:"Conductor", Guard:"Guard"};
 
 const HERO_IMAGE = {
   Bear:      "https://ipfs-pera.algonode.dev/ipfs/bafkreidtl5ha7is6ze5lfgs6fpfagzvtpkjsx3327urgvge463c2kmimem?optimizer=image&width=200&quality=70",
