@@ -287,6 +287,11 @@
     </div>
   </div>
 
+  <div id="season-upcoming-panel" style="display:none; text-align:center; padding:60px 20px;">
+    <h1 class="display" style="font-size:24px; margin-bottom:8px;">Season hasn't started yet</h1>
+    <p style="color:var(--text-dim);">Your team's registered — nice. Lineups open once the season officially starts. Check back soon.</p>
+  </div>
+
   <div id="app">
     <div class="team-header">
       <div class="team-identity">
@@ -698,6 +703,20 @@ async function loadMyTeamAndRoster(){
   }
 
   document.getElementById('no-team-panel').style.display = 'none';
+
+  // A season in 'upcoming' status hasn't been started yet -- current_week
+  // is 0, which isn't a real week to submit a lineup for. Without this
+  // guard, someone could fill out the entire 8-slot builder and only
+  // find out it can't actually be submitted at the very end, from a
+  // generic "Missing required field(s)" error server-side (week_number:0
+  // fails a naive truthy check) -- a confusing, late failure for
+  // something the site could have told them up front.
+  if (currentSeason.status === 'upcoming'){
+    statusLine("");
+    document.getElementById('season-upcoming-panel').style.display = 'block';
+    return;
+  }
+
   statusLine(`Loading your held Zappies…`);
 
   try {
