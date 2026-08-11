@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voltball — Scout</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg: #0B0D14;
+    --panel: #151827;
+    --panel-2: #1B1F32;
+    --line: #262B40;
+    --text: #E7E9F2;
+    --text-dim: #8A8FA8;
+    --striker: #E8FF3C;
+    --mid: #7B5CFF;
+    --guard: #2DE1C2;
+    --alert: #FF3D6E;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background: radial-gradient(ellipse 1200px 600px at 50% -10%, #1a1030 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height:100vh;
+    padding-bottom: 60px;
+  }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  .display{ font-family:'Chakra Petch', sans-serif; font-weight:700; letter-spacing:0.01em; }
+
+  nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 20px 32px; border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:rgba(11,13,20,0.85); backdrop-filter: blur(10px);
+    z-index:50;
+  }
+  .wordmark{ display:flex; align-items:center; gap:10px; font-size:20px; color:inherit; cursor:pointer; text-decoration:none; }
+  .wordmark .bolt{ color:var(--striker); font-size:22px; filter: drop-shadow(0 0 8px rgba(232,255,60,0.6)); }
+  .nav-links{ display:flex; align-items:center; gap:22px; }
+  .nav-link{
+    font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:13px; letter-spacing:0.03em;
+    color:var(--text-dim); text-decoration:none; padding:6px 2px; border-bottom:2px solid transparent; transition: all .15s ease;
+  }
+  .nav-link:hover{ color:var(--text); }
+  .nav-link.active{ color:var(--striker); border-color:var(--striker); }
+
+  main{ max-width: 980px; margin: 0 auto; padding: 40px 24px 0; }
+
+  .page-header{ margin-bottom: 8px; }
+  .page-header h1{ font-size:26px; margin-bottom:4px; }
+  .page-header .sub{ color:var(--text-dim); font-size:13px; }
+  .page-header .sub b{ color:var(--text); }
+
+  .status-pill{
+    display:inline-block; font-family:'Chakra Petch',sans-serif; font-size:11px; font-weight:600;
+    letter-spacing:0.06em; text-transform:uppercase; padding:3px 10px; border-radius:20px; margin-left:8px;
+  }
+  .status-pill.active{ background:rgba(45,225,194,0.12); color:var(--guard); }
+  .status-pill.playoffs{ background:rgba(232,255,60,0.15); color:var(--striker); }
+  .status-pill.complete{ background:rgba(123,92,255,0.12); color:#a595ff; }
+  .status-pill.upcoming{ background:var(--panel-2); color:var(--text-dim); }
+
+  #loading{ text-align:center; padding:100px 20px; color:var(--text-dim); font-size:14px; }
+  #empty-state{ display:none; text-align:center; padding:100px 20px; }
+  #empty-state h2{ font-size:20px; margin-bottom:8px; }
+  #empty-state p{ color:var(--text-dim); font-size:14px; }
+  #error-state{ display:none; text-align:center; padding:100px 20px; color:var(--alert); font-size:14px; }
+
+  #teams-wrap{ display:none; margin-top:28px; display:flex; flex-direction:column; gap:16px; }
+
+  .team-panel{ background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+  .team-panel-header{
+    display:flex; align-items:center; gap:14px; padding:16px 20px; border-bottom:1px solid var(--line);
+  }
+  .team-panel-header img{ width:44px; height:44px; border-radius:9px; object-fit:cover; border:1px solid var(--line); flex-shrink:0; }
+  .team-panel-name{ font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:15px; }
+  .team-panel-hero{ font-size:12px; color:var(--text-dim); }
+  .cpu-tag{
+    font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--text-dim);
+    border:1px solid var(--line); border-radius:4px; padding:1px 5px; margin-left:6px; vertical-align:middle;
+  }
+  .formation-tag{
+    margin-left:auto; font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:11px; letter-spacing:0.04em;
+    text-transform:uppercase; padding:5px 12px; border-radius:20px; background:var(--panel-2); color:var(--text);
+    border:1px solid var(--line); white-space:nowrap;
+  }
+
+  .team-panel-body{ padding:16px 20px 20px; }
+  .placeholder-note{ font-size:13px; color:var(--text-dim); font-style:italic; }
+
+  .lanes-scout{ display:grid; grid-template-columns: repeat(3,1fr); gap:14px; }
+  .lane-scout-label{
+    font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:11px; text-transform:uppercase;
+    letter-spacing:0.06em; margin-bottom:8px;
+  }
+  .lane-scout[data-pos="Striker"] .lane-scout-label{ color:var(--striker); }
+  .lane-scout[data-pos="Mid"] .lane-scout-label{ color:var(--mid); }
+  .lane-scout[data-pos="Guard"] .lane-scout-label{ color:var(--guard); }
+
+  .scout-chip{
+    display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:7px;
+    background:rgba(255,255,255,0.02); border:1px solid var(--line); margin-bottom:6px;
+  }
+  .scout-chip img{ width:26px; height:26px; border-radius:5px; object-fit:cover; flex-shrink:0; }
+  .scout-chip .cname{ font-size:12px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .scout-chip .cstat{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-dim); flex-shrink:0; }
+
+  @media (max-width: 700px){
+    nav{ padding: 14px 16px; }
+    .wordmark{ font-size:16px; gap:7px; }
+    .wordmark .bolt{ font-size:17px; }
+    .nav-links{ gap:16px; }
+    .nav-link{ font-size:11px; }
+    .lanes-scout{ grid-template-columns: 1fr; }
+    .team-panel-header{ flex-wrap:wrap; }
+    .formation-tag{ margin-left:0; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="wordmark" href="./index.html"><span class="bolt">⚡</span><span class="display">VOLTBALL</span></a>
+  <div class="nav-links">
+    <a class="nav-link" href="./lineup.html">Lineup</a>
+    <a class="nav-link active" href="./scout.html">Scout</a>
+    <a class="nav-link" href="./standings.html">Standings</a>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <h1 class="display" id="page-title">Scout</h1>
+    <div class="sub" id="page-sub">Loading season…</div>
+  </div>
+
+  <div id="loading">Loading lineups…</div>
+  <div id="error-state"></div>
+  <div id="empty-state">
+    <h2 class="display">No teams yet</h2>
+    <p>No teams are registered for this season yet — check back once coaches start signing up.</p>
+  </div>
+
+  <div id="teams-wrap"></div>
+</main>
+
+<script type="module">
+const GUILD_ID = "1310425792349601985";
+const SUPABASE_URL = "https://texlxhkzsbvwvptjanhd.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRleGx4aGt6c2J2d3ZwdGphbmhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTU3MTYsImV4cCI6MjA4OTQzMTcxNn0.yihmxMxvdnV0zLaT8JVddT0zYd9MB3Ol9mj0Xnfl4KM";
+
+const FORMATIONS = {
+  OFFENSE:  {Striker:5, Mid:1, Guard:1},
+  BALANCED: {Striker:3, Mid:2, Guard:2},
+  DEFENSE:  {Striker:1, Mid:2, Guard:4},
+};
+const POSITION_STAT = {Striker:"VLT", Mid:"SPK", Guard:"INS"};
+const DISPLAY_NAME = {Striker:"Surge Back", Mid:"Conductor", Guard:"Guard"};
+
+const HERO_IMAGE = {
+  Bear:      "https://ipfs-pera.algonode.dev/ipfs/bafkreidtl5ha7is6ze5lfgs6fpfagzvtpkjsx3327urgvge463c2kmimem?optimizer=image&width=200&quality=70",
+  Crocodile: "https://ipfs-pera.algonode.dev/ipfs/bafkreibelcalckqcxpabntsja6ejdsdbs7aqg6wtjjx7nr5swdaabkxcpe?optimizer=image&width=200&quality=70",
+  Cat:       "https://ipfs-pera.algonode.dev/ipfs/bafkreiendbzef6gm3idxel5xl5bcbzf6xofns3qfvlqx7jmg6eqdnjfjvu?optimizer=image&width=200&quality=70",
+  Rabbit:    "https://ipfs-pera.algonode.dev/ipfs/bafkreictcu7ipijiknqaofjhbubjjylxg26zrvjrgdheycubp44kgx2g4a?optimizer=image&width=200&quality=70",
+  Wolf:      "https://ipfs-pera.algonode.dev/ipfs/bafybeiez2pgydvo5bza6egakwxciqww6q62c4jeatd7agrwxsyut2lhqbm?optimizer=image&width=200&quality=70",
+  Frog:      "https://ipfs-pera.algonode.dev/ipfs/bafybeiap4ffb5ywlaifxz5lmj3wkqwsej6xwqdhwo3nll2nmww27rpashi?optimizer=image&width=200&quality=70",
+  Eagle:     "https://ipfs-pera.algonode.dev/ipfs/bafybeifg2ksv46ad7uwhtasjtkbqnbqvvbo64adbwczh24unjrtgjxp44q?optimizer=image&width=200&quality=70",
+  Buck:      "https://ipfs-pera.algonode.dev/ipfs/bafybeihumzywdl3eogvon3c7dwtmmcfxyi2in7a2ibfnkjekkfdxq6ydwq?optimizer=image&width=200&quality=70",
+  Snake:     "https://ipfs-pera.algonode.dev/ipfs/bafybeifgmwm45kg3hg3tan3hvrdqsh6e2jijrm2zuy2tnhhij6krvvzdda?optimizer=image&width=200&quality=70",
+  Shark:     "https://ipfs-pera.algonode.dev/ipfs/bafybeigtp5qmpaxgqvagk5cuty63i4vzsrwy3tc6s3ryoppvlekubzt5ki?optimizer=image&width=200&quality=70",
+};
+
+function avatarFor(seed, size=64){
+  let hash = 0;
+  const s = String(seed);
+  for (let i=0; i<s.length; i++){ hash = (hash * 31 + s.charCodeAt(i)) >>> 0; }
+  const hueA = hash % 360;
+  const hueB = (hueA + 40 + (hash % 60)) % 360;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 100 100">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="hsl(${hueA},70%,55%)"/><stop offset="100%" stop-color="hsl(${hueB},70%,35%)"/>
+    </linearGradient></defs>
+    <rect width="100" height="100" fill="#151827"/>
+    <circle cx="50" cy="50" r="34" fill="url(#g)" opacity="0.9"/>
+    <path d="M53 22 L34 55 L47 55 L44 78 L68 45 L54 45 Z" fill="rgba(255,255,255,0.85)"/>
+  </svg>`;
+  return "data:image/svg+xml," + encodeURIComponent(svg);
+}
+
+// Same Accept-Profile fix as the other pages — see handoff doc, Bug #10.
+async function supabaseGet(path){
+  const url = `${SUPABASE_URL}/rest/v1/${path}`;
+  const res = await fetch(url, {
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      "Accept-Profile": "public",
+    },
+  });
+  if (!res.ok) throw new Error(`Supabase read failed: ${res.status}`);
+  return res.json();
+}
+
+let zappyStats = null;
+async function loadZappyStats(){
+  if (zappyStats) return zappyStats;
+  const res = await fetch('./zappy_stats.json');
+  zappyStats = await res.json();
+  return zappyStats;
+}
+
+function fmtStatus(status){
+  return { active: "In Season", playoffs: "Playoffs", complete: "Final", upcoming: "Upcoming" }[status] || status;
+}
+
+// Resolve a lineup entry (only {asset_id, name} was stored at submission
+// time -- no stats snapshot) against zappy_stats.json for real art/stats.
+// Falls back to the stored name + a generated avatar if the asset isn't
+// in the collection file for any reason (shouldn't normally happen for
+// real roster Zappies, but a Hero/collab asset never would be).
+function resolveChip(entry, stats){
+  const live = stats[String(entry.asset_id)];
+  if (live) return { name: live.name, image_url: live.image_url, VLT: live.VLT, INS: live.INS, SPK: live.SPK };
+  return { name: entry.name || `#${entry.asset_id}`, image_url: null, VLT: null, INS: null, SPK: null };
+}
+
+function renderLineupPanel(team, lineup, stats){
+  const counts = FORMATIONS[lineup.formation] || {};
+  const lanesHtml = Object.keys(POSITION_STAT).map(pos => {
+    const entries = (lineup.assignments && lineup.assignments[pos]) || [];
+    const chips = entries.map(entry => {
+      const z = resolveChip(entry, stats);
+      const img = z.image_url || avatarFor(entry.asset_id);
+      const statVal = z[POSITION_STAT[pos]];
+      return `<div class="scout-chip">
+        <img src="${img}" onerror="this.onerror=null; this.src='${avatarFor(entry.asset_id)}';" alt="">
+        <span class="cname">${z.name}</span>
+        <span class="cstat">${statVal !== null ? `${POSITION_STAT[pos]} ${statVal}` : ''}</span>
+      </div>`;
+    }).join('') || `<div class="placeholder-note">Empty</div>`;
+    return `<div class="lane-scout" data-pos="${pos}">
+      <div class="lane-scout-label">${DISPLAY_NAME[pos]} · ${entries.length}/${counts[pos] ?? '?'}</div>
+      ${chips}
+    </div>`;
+  }).join('');
+
+  return `<div class="lanes-scout">${lanesHtml}</div>`;
+}
+
+async function init(){
+  try {
+    const seasons = await supabaseGet(
+      `voltball_seasons?guild_id=eq.${GUILD_ID}&order=created_at.desc&limit=1&select=*`
+    );
+    const season = seasons[0];
+
+    if (!season){
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('page-sub').textContent = 'No season found for this server yet.';
+      document.getElementById('empty-state').style.display = 'block';
+      return;
+    }
+
+    const pill = `<span class="status-pill ${season.status}">${fmtStatus(season.status)}</span>`;
+    document.getElementById('page-title').textContent = `Scout — Week ${season.current_week}`;
+    document.getElementById('page-sub').innerHTML =
+      `${season.name || 'Voltball'} ${pill}`;
+
+    if (season.status === 'upcoming'){
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('empty-state').style.display = 'block';
+      return;
+    }
+
+    const [teamsRows, lineupRows] = await Promise.all([
+      supabaseGet(`voltball_teams_public?season_id=eq.${season.id}&select=*`),
+      supabaseGet(`voltball_lineups?season_id=eq.${season.id}&week_number=eq.${season.current_week}&select=*`),
+    ]);
+
+    document.getElementById('loading').style.display = 'none';
+
+    if (!teamsRows.length){
+      document.getElementById('empty-state').style.display = 'block';
+      return;
+    }
+
+    const lineupByTeam = {};
+    for (const l of lineupRows) lineupByTeam[l.team_id] = l;
+
+    // Only fetch the ~260KB stats file if there's actually a real
+    // lineup to resolve chips against -- an all-CPU or all-empty week
+    // shouldn't pay that cost.
+    const needsStats = teamsRows.some(t => !t.is_cpu && lineupByTeam[t.id]);
+    const stats = needsStats ? await loadZappyStats() : {};
+
+    const teamsSorted = [...teamsRows].sort((a, b) => a.team_name.localeCompare(b.team_name));
+
+    const wrap = document.getElementById('teams-wrap');
+    wrap.innerHTML = teamsSorted.map(team => {
+      const heroImg = team.hero_type && HERO_IMAGE[team.hero_type] ? HERO_IMAGE[team.hero_type] : avatarFor(team.id);
+      const lineup = lineupByTeam[team.id];
+
+      let formationTag = '';
+      let body;
+      if (team.is_cpu){
+        body = `<div class="placeholder-note">🤖 CPU team — fields a fresh random roster and formation at resolution time.</div>`;
+      } else if (lineup){
+        formationTag = `<div class="formation-tag">${lineup.formation}</div>`;
+        body = renderLineupPanel(team, lineup, stats);
+      } else {
+        body = `<div class="placeholder-note">⏳ No lineup submitted yet.</div>`;
+      }
+
+      return `<div class="team-panel">
+        <div class="team-panel-header">
+          <img src="${heroImg}" onerror="this.onerror=null; this.src='${avatarFor(team.id)}';" alt="">
+          <div>
+            <div class="team-panel-name">${team.team_name}${team.is_cpu ? '<span class="cpu-tag">CPU</span>' : ''}</div>
+            <div class="team-panel-hero">${team.hero_type || 'No Coach'}</div>
+          </div>
+          ${formationTag}
+        </div>
+        <div class="team-panel-body">${body}</div>
+      </div>`;
+    }).join('');
+
+    wrap.style.display = 'flex';
+  } catch (err) {
+    console.error(err);
+    document.getElementById('loading').style.display = 'none';
+    const el = document.getElementById('error-state');
+    el.textContent = "Couldn't load lineups — see console for details.";
+    el.style.display = 'block';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
