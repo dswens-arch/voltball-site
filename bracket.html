@@ -98,6 +98,12 @@
   }
   .round-title::after{ content:''; flex:1; height:1px; background:var(--line); }
 
+  .match-block{ display:flex; flex-direction:column; }
+  .match-label{
+    font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:11px; text-transform:uppercase;
+    letter-spacing:0.06em; color:var(--text-dim); margin-bottom:8px;
+  }
+
   .bracket-flow{ display:flex; align-items:stretch; gap:0; margin-bottom:40px; }
   .bracket-semis-col{ display:flex; flex-direction:column; justify-content:space-between; gap:20px; width:100%; max-width:440px; }
   .bracket-connector{ width:60px; flex-shrink:0; }
@@ -195,10 +201,10 @@
       <div class="bracket-semis-col" id="semis-col"></div>
       <div class="bracket-connector">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-          <line x1="0" y1="22" x2="50" y2="22" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
-          <line x1="0" y1="78" x2="50" y2="78" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
-          <line x1="50" y1="22" x2="50" y2="78" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
-          <line x1="50" y1="50" x2="100" y2="50" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+          <line x1="0" y1="27" x2="50" y2="27" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+          <line x1="0" y1="80" x2="50" y2="80" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+          <line x1="50" y1="27" x2="50" y2="80" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+          <line x1="50" y1="53" x2="100" y2="53" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
         </svg>
       </div>
       <div class="bracket-final-col" id="final-col"></div>
@@ -428,16 +434,16 @@ async function init(){
     document.getElementById('page-title').textContent = season.status === 'complete' ? 'Playoff Bracket — Final' : `Playoff Bracket — Week ${season.current_week}`;
 
     const semisGrid = document.getElementById('semis-col');
-    semisGrid.innerHTML = semisPairings.map(pairing => {
+    semisGrid.innerHTML = semisPairings.map((pairing, i) => {
       const match = semisMatches.find(m =>
         (m.team_a_id === pairing.team_a_id && m.team_b_id === pairing.team_b_id) ||
         (m.team_a_id === pairing.team_b_id && m.team_b_id === pairing.team_a_id)
       ) || null;
-      return renderMatchCard(pairing, match, teamsById);
+      return `<div class="match-block"><div class="match-label">Semifinal ${i + 1}</div>${renderMatchCard(pairing, match, teamsById)}</div>`;
     }).join('');
 
     const finalGrid = document.getElementById('final-col');
-    finalGrid.innerHTML = renderMatchCard(finalPairing, finalMatch, teamsById);
+    finalGrid.innerHTML = `<div class="match-block"><div class="match-label">Championship</div>${renderMatchCard(finalPairing, finalMatch, teamsById)}</div>`;
 
     if (finalMatch){
       const championTeam = teamsById[finalMatch.winner_team_id];
