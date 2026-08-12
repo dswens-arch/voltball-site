@@ -205,6 +205,8 @@
   .zcard:hover{ border-color:#3a3f5a; transform: translateY(-1px); }
   .zcard.used{ opacity:.3; cursor:not-allowed; }
   .zcard.used:hover{ transform:none; }
+  .zcard.injured{ opacity:.5; cursor:not-allowed; border-color:var(--alert); }
+  .zcard.injured:hover{ transform:none; }
   .zcard .zthumb{ width:100%; aspect-ratio:1; object-fit:cover; display:block; background:var(--panel-2); margin-bottom:10px; }
   .zcard .zbody{ padding:0 12px; }
   .zcard .zn{ font-size:13px; font-weight:600; margin-bottom:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -218,6 +220,7 @@
   .fit-badge.elite{ background:rgba(232,255,60,0.15); color:var(--striker); }
   .fit-badge.strong{ background:rgba(123,92,255,0.15); color:#a595ff; }
   .fit-badge.solid{ background:rgba(45,225,194,0.12); color:var(--guard); }
+  .fit-badge.injured-badge{ background:rgba(255,61,110,0.12); color:var(--alert); }
 
   .hero-pick-card{
     background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 10px;
@@ -442,6 +445,7 @@ let currentTeam = null;      // from get-my-team
 let currentSeason = null;    // from get-my-team
 let zappyStats = null;       // loaded once from zappy_stats.json
 let heldZappies = [];        // this wallet's real roster-eligible Zappies, with real stats
+let injuredAssetIds = new Set();  // asset_ids unavailable THIS week — see checkInjuries()
 let formation = "BALANCED";
 let tempo = 5.5;
 let activeTab = "QB";
@@ -572,6 +576,19 @@ async function fetchHeldZappies(address){
     nextToken = data['next-token'] ?? null;
   } while (nextToken);
   return held;
+}
+
+// Public read (voltball_injuries has a public-read policy, same as
+// standings/lineups) — asset_ids with out_week == current_week for
+// THIS team are unavailable this week, flat 1-week duration.
+async function checkInjuries(){
+  try {
+    const rows = await supabaseGet(`voltball_injuries?team_id=eq.${currentTeam.id}&out_week=eq.${currentSeason.current_week}&select=asset_id`);
+    injuredAssetIds = new Set((rows ?? []).map(r => r.asset_id));
+  } catch (err) {
+    console.error("Couldn't check injury status (non-fatal):", err);
+    injuredAssetIds = new Set();
+  }
 }
 
 // ── get-my-team: signed read, since wallet_address isn't public (see
@@ -783,6 +800,8 @@ async function loadMyTeamAndRoster(){
     return;
   }
 
+  await checkInjuries();
+
   document.getElementById('team-name-display').textContent = currentTeam.team_name;
   document.getElementById('coach-name-display').textContent = currentTeam.hero_type || 'No Coach';
   document.getElementById('week-display').textContent = currentSeason.current_week;
@@ -889,22 +908,29 @@ window.applyRepeatLineup = function(){
   document.getElementById('tempo-slider').value = tempo;
   window.onTempoChange(tempo);
 
-  // Re-validated against CURRENTLY held Zappies, not blindly trusted —
-  // holdings can change week to week (sold, traded), and a stale
-  // asset_id silently reappearing in a new lineup would be a real bug,
-  // not a convenience.
+  // Re-validated against CURRENTLY held Zappies AND current injury
+  // status, not blindly trusted — holdings change week to week (sold,
+  // traded), and someone who played last week could be injured THIS
+  // week. Silently reincluding either would be a real bug, not a
+  // convenience.
   assignments = {QB: [], Striker: [], Mid: [], Guard: []};
   let missingCount = 0;
+  let injuredCount = 0;
   for (const pos of ["QB","Striker","Mid","Guard"]){
     for (const entry of repeatableLineup.assignments[pos] ?? []){
+      if (injuredAssetIds.has(entry.asset_id)){ injuredCount++; continue; }
       const z = heldZappies.find(h => h.asset_id === entry.asset_id);
       if (z) assignments[pos].push(z);
       else missingCount++;
     }
   }
   render();
-  if (missingCount > 0){
-    toast(`Applied Week ${repeatableLineup.week_number}'s lineup — ${missingCount} Zappy${missingCount > 1 ? 's are' : ' is'} no longer held, left that ${missingCount > 1 ? 'many slots' : 'slot'} open.`, true);
+  const skipped = missingCount + injuredCount;
+  if (skipped > 0){
+    const parts = [];
+    if (missingCount > 0) parts.push(`${missingCount} no longer held`);
+    if (injuredCount > 0) parts.push(`${injuredCount} injured this week`);
+    toast(`Applied Week ${repeatableLineup.week_number}'s lineup — left ${skipped} slot${skipped > 1 ? 's' : ''} open (${parts.join(', ')}).`, true);
   } else {
     toast(`✓ Applied Week ${repeatableLineup.week_number}'s lineup — review and lock in when ready.`);
   }
@@ -1033,9 +1059,11 @@ function renderRoster(){
 
   grid.innerHTML = sorted.map(z => {
     const isUsed = used.has(z.asset_id);
+    const isInjured = injuredAssetIds.has(z.asset_id);
+    const isDisabled = isUsed || isInjured;
     const pct = percentileWithin(stat, z[stat]);
     const tier = fitTier(pct);
-    return `<div class="zcard ${isUsed?'used':''}" onclick="${isUsed ? '' : `window.assign('${activeTab}', ${z.asset_id})`}">
+    return `<div class="zcard ${isUsed?'used':''} ${isInjured?'injured':''}" onclick="${isDisabled ? '' : `window.assign('${activeTab}', ${z.asset_id})`}">
       ${imgWithFallback(z.image_url, z.asset_id, "zthumb", 'loading="lazy"')}
       <div class="zbody">
         <div class="zn">${z.name}</div>
@@ -1044,7 +1072,7 @@ function renderRoster(){
           <span class="st ${stat==='INS'?'hot':''}">INS ${z.INS}</span>
           <span class="st ${stat==='SPK'?'hot':''}">SPK ${z.SPK}</span>
         </div>
-        ${tier ? `<div class="fit-badge ${tier.cls}">${tier.label} ${DISPLAY_NAME[activeTab]}</div>` : ''}
+        ${isInjured ? `<div class="fit-badge injured-badge">🤕 Injured this week</div>` : (tier ? `<div class="fit-badge ${tier.cls}">${tier.label} ${DISPLAY_NAME[activeTab]}</div>` : '')}
       </div>
     </div>`;
   }).join('');
