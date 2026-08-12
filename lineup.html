@@ -86,6 +86,17 @@
   .signature-desc{ font-size:12px; color:var(--text-dim); }
   .signature-card.no-coach{ border-left-color:var(--line); }
   .signature-card.no-coach .signature-label{ color:var(--text-dim); }
+
+  .repeat-bar{
+    display:flex; align-items:center; gap:12px; background:var(--panel); border:1px solid var(--line);
+    border-radius:10px; padding:12px 16px; margin-bottom:28px;
+  }
+  .repeat-btn{
+    background:var(--panel-2); color:var(--text); border:1px solid var(--line); border-radius:7px;
+    padding:9px 16px; font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:13px;
+    cursor:pointer; transition: all .15s ease; white-space:nowrap;
+  }
+  .repeat-btn:hover{ border-color:var(--striker); color:var(--striker); }
   .team-header .sub{ color:var(--text-dim); font-size:13px; }
   .team-header .sub b{ color:var(--text); }
 
@@ -317,6 +328,11 @@
       <div class="signature-desc" id="signature-desc">—</div>
     </div>
 
+    <div class="repeat-bar" id="repeat-bar" style="display:none;">
+      <button class="repeat-btn" onclick="applyRepeatLineup()">↻ Repeat Last Week's Lineup</button>
+      <span id="repeat-note" style="font-size:12px; color:var(--text-dim);"></span>
+    </div>
+
     <div class="section-title">Formation</div>
     <div style="font-size:11px; color:var(--text-dim); margin:6px 0 20px;">Thumbnails try to load the real Zappy art first — if you see colored circles instead, your browser couldn't reach the IPFS gateway.</div>
     <div class="formations" id="formations"></div>
@@ -428,7 +444,7 @@ let zappyStats = null;       // loaded once from zappy_stats.json
 let heldZappies = [];        // this wallet's real roster-eligible Zappies, with real stats
 let formation = "BALANCED";
 let tempo = 5.5;
-let activeTab = "Striker";
+let activeTab = "QB";
 let assignments = {QB:[], Striker:[], Mid:[], Guard:[]};
 
 // ── Real deployment config ──
@@ -674,7 +690,7 @@ function clearCachedTeam(address){
 // Always a fresh, unsigned public read -- see the note above on why
 // current_week specifically is never cached.
 async function fetchCurrentSeason(){
-  const rows = await supabaseGet(`voltball_seasons?guild_id=eq.${GUILD_ID}&status=in.(active,upcoming)&order=status.asc&select=*`);
+  const rows = await supabaseGet(`voltball_seasons?guild_id=eq.${GUILD_ID}&status=in.(active,playoffs,upcoming)&order=status.asc&select=*`);
   return rows?.[0] ?? null;
 }
 
@@ -839,9 +855,60 @@ async function loadMyTeamAndRoster(){
     badge.style.color = 'var(--guard)';
     badge.textContent = `· ✓ Locked in (${formation} / tempo ${tempo})`;
   } else {
+    await checkForRepeatableLineup();
     render();
   }
 }
+
+let repeatableLineup = null;
+
+// Only offered when THIS week has no lineup yet — once locked in,
+// there's nothing left to "repeat" over, and re-showing this after
+// lock-in would just be confusing next to an already-locked lineup.
+async function checkForRepeatableLineup(){
+  try {
+    const rows = await supabaseGet(`voltball_lineups?team_id=eq.${currentTeam.id}&week_number=lt.${currentSeason.current_week}&order=week_number.desc&limit=1&select=*`);
+    repeatableLineup = rows?.[0] ?? null;
+  } catch (err) {
+    console.error("Couldn't check for a repeatable lineup (non-fatal):", err);
+    repeatableLineup = null;
+  }
+  const bar = document.getElementById('repeat-bar');
+  if (repeatableLineup) {
+    bar.style.display = 'flex';
+    document.getElementById('repeat-note').textContent = `From Week ${repeatableLineup.week_number}`;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+window.applyRepeatLineup = function(){
+  if (!repeatableLineup) return;
+  formation = repeatableLineup.formation;
+  tempo = repeatableLineup.tempo != null ? parseFloat(repeatableLineup.tempo) : 5.5;
+  document.getElementById('tempo-slider').value = tempo;
+  window.onTempoChange(tempo);
+
+  // Re-validated against CURRENTLY held Zappies, not blindly trusted —
+  // holdings can change week to week (sold, traded), and a stale
+  // asset_id silently reappearing in a new lineup would be a real bug,
+  // not a convenience.
+  assignments = {QB: [], Striker: [], Mid: [], Guard: []};
+  let missingCount = 0;
+  for (const pos of ["QB","Striker","Mid","Guard"]){
+    for (const entry of repeatableLineup.assignments[pos] ?? []){
+      const z = heldZappies.find(h => h.asset_id === entry.asset_id);
+      if (z) assignments[pos].push(z);
+      else missingCount++;
+    }
+  }
+  render();
+  if (missingCount > 0){
+    toast(`Applied Week ${repeatableLineup.week_number}'s lineup — ${missingCount} Zappy${missingCount > 1 ? 's are' : ' is'} no longer held, left that ${missingCount > 1 ? 'many slots' : 'slot'} open.`, true);
+  } else {
+    toast(`✓ Applied Week ${repeatableLineup.week_number}'s lineup — review and lock in when ready.`);
+  }
+};
 
 // ── Formation/roster picker (same interaction model as the original
 // prototype — this section is UI logic only, no data here is fake
