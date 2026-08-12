@@ -98,8 +98,12 @@
   }
   .round-title::after{ content:''; flex:1; height:1px; background:var(--line); }
 
-  .bracket-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:20px; align-items:center; margin-bottom:40px; }
-  .bracket-grid.single{ grid-template-columns: 1fr; max-width:420px; margin-left:auto; margin-right:auto; }
+  .bracket-flow{ display:flex; align-items:stretch; gap:0; margin-bottom:40px; }
+  .bracket-semis-col{ display:flex; flex-direction:column; justify-content:space-between; gap:20px; width:100%; max-width:440px; }
+  .bracket-connector{ width:60px; flex-shrink:0; }
+  .bracket-connector svg{ width:100%; height:100%; display:block; }
+  .bracket-final-col{ flex:1; display:flex; align-items:center; max-width:420px; }
+  .bracket-final-col .match-card{ width:100%; }
 
   .match-card{
     background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden;
@@ -144,8 +148,10 @@
     .nav-link{ font-size:11px; }
     .wallet-btn{ font-size:12px; padding:8px 14px; }
     .wallet-btn.connected{ font-size:11px; padding:7px 12px; }
-    .bracket-grid{ grid-template-columns: 1fr; }
-    .bracket-grid.single{ max-width:none; }
+    .bracket-flow{ flex-direction:column; gap:20px; }
+    .bracket-connector{ display:none; }
+    .bracket-semis-col{ max-width:none; gap:16px; }
+    .bracket-final-col{ max-width:none; }
   }
 </style>
 </head>
@@ -184,11 +190,19 @@
       <div class="clabel">Season Champion</div>
     </div>
 
-    <div class="round-title">Semifinals</div>
-    <div class="bracket-grid" id="semis-grid"></div>
-
-    <div class="round-title">Championship</div>
-    <div class="bracket-grid single" id="final-grid"></div>
+    <div class="round-title">Semifinals → Championship</div>
+    <div class="bracket-flow">
+      <div class="bracket-semis-col" id="semis-col"></div>
+      <div class="bracket-connector">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+          <line x1="0" y1="22" x2="50" y2="22" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+          <line x1="0" y1="78" x2="50" y2="78" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+          <line x1="50" y1="22" x2="50" y2="78" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+          <line x1="50" y1="50" x2="100" y2="50" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
+        </svg>
+      </div>
+      <div class="bracket-final-col" id="final-col"></div>
+    </div>
   </div>
 </main>
 
@@ -413,7 +427,7 @@ async function init(){
 
     document.getElementById('page-title').textContent = season.status === 'complete' ? 'Playoff Bracket — Final' : `Playoff Bracket — Week ${season.current_week}`;
 
-    const semisGrid = document.getElementById('semis-grid');
+    const semisGrid = document.getElementById('semis-col');
     semisGrid.innerHTML = semisPairings.map(pairing => {
       const match = semisMatches.find(m =>
         (m.team_a_id === pairing.team_a_id && m.team_b_id === pairing.team_b_id) ||
@@ -422,7 +436,7 @@ async function init(){
       return renderMatchCard(pairing, match, teamsById);
     }).join('');
 
-    const finalGrid = document.getElementById('final-grid');
+    const finalGrid = document.getElementById('final-col');
     finalGrid.innerHTML = renderMatchCard(finalPairing, finalMatch, teamsById);
 
     if (finalMatch){
