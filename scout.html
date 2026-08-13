@@ -375,19 +375,14 @@ async function init(){
     }
 
     const pill = `<span class="status-pill ${season.status}">${fmtStatus(season.status)}</span>`;
-    document.getElementById('page-title').textContent = `Scout — Week ${season.current_week}`;
+    const seasonNotStarted = season.status === 'upcoming';
+    document.getElementById('page-title').textContent = seasonNotStarted ? 'Scout — Registration Open' : `Scout — Week ${season.current_week}`;
     document.getElementById('page-sub').innerHTML =
       `${season.name || 'Voltball'} ${pill}`;
 
-    if (season.status === 'upcoming'){
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('empty-state').style.display = 'block';
-      return;
-    }
-
     const [teamsRows, lineupRows] = await Promise.all([
       supabaseGet(`voltball_teams_public?season_id=eq.${season.id}&select=*`),
-      supabaseGet(`voltball_lineups?season_id=eq.${season.id}&week_number=eq.${season.current_week}&select=*`),
+      seasonNotStarted ? Promise.resolve([]) : supabaseGet(`voltball_lineups?season_id=eq.${season.id}&week_number=eq.${season.current_week}&select=*`),
     ]);
 
     document.getElementById('loading').style.display = 'none';
@@ -415,7 +410,9 @@ async function init(){
 
       let formationTag = '';
       let body;
-      if (team.is_cpu){
+      if (seasonNotStarted){
+        body = `<div class="placeholder-note">✅ Registered — season hasn't started yet.</div>`;
+      } else if (team.is_cpu){
         body = `<div class="placeholder-note">🤖 CPU team — fields a fresh random roster and formation at resolution time.</div>`;
       } else if (lineup){
         formationTag = `<div class="formation-tag">${lineup.formation}</div>`;
