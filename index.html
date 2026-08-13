@@ -15,6 +15,7 @@
     --text: #E7E9F2;
     --text-dim: #8A8FA8;
     --striker: #E8FF3C;
+    --qb: #FF9F40;
     --mid: #7B5CFF;
     --guard: #2DE1C2;
     --alert: #FF3D6E;
@@ -74,7 +75,7 @@
   .cta-btn:hover{ transform: translateY(-2px); box-shadow: 0 0 40px rgba(232,255,60,0.5); }
   .cta-sub{ margin-top:14px; font-size:12px; color:var(--text-dim); }
 
-  .steps{ display:grid; grid-template-columns: repeat(3,1fr); gap:16px; margin: 30px 0 60px; }
+  .steps{ display:grid; grid-template-columns: repeat(2,1fr); gap:16px; margin: 30px 0 60px; }
   .step-card{
     background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:22px 18px;
     text-align:left; position:relative; overflow:hidden;
@@ -84,6 +85,7 @@
   }
   .step-card h3{ font-family:'Chakra Petch',sans-serif; font-size:16px; margin-bottom:8px; }
   .step-card p{ font-size:13px; color:var(--text-dim); line-height:1.55; }
+  .step-card.qb{ border-top:2px solid var(--qb); }
   .step-card.striker{ border-top:2px solid var(--striker); }
   .step-card.mid{ border-top:2px solid var(--mid); }
   .step-card.guard{ border-top:2px solid var(--guard); }
@@ -135,26 +137,31 @@
   <div class="hero">
     <span class="bolt-big">⚡</span>
     <h1 class="display">Coach your Zappies.<br>Own the season.</h1>
-    <p>Voltball is a fantasy league built on your Zappies Reborn collection. A Hero NFT coaches your team, seven of your held Zappies fill the roster, and every week's formation decides how the match plays out.</p>
+    <p>Voltball is a fantasy league built on your Zappies Reborn collection. Build an 8-player roster, set your formation and Tempo each week, and watch matches resolve quarter by quarter. A Hero NFT gives your team a real edge — but it's not required to play.</p>
     <button class="cta-btn" id="hero-cta" onclick="heroCTA()">Connect Wallet</button>
-    <div class="cta-sub" id="cta-sub">Requires a Hero (or collab) NFT and 7+ roster-eligible Zappies in your wallet.</div>
+    <div class="cta-sub" id="cta-sub">8+ roster-eligible Zappies in your wallet. A Hero NFT is a bonus, not a requirement.</div>
   </div>
 
   <div class="steps">
-    <div class="step-card striker">
+    <div class="step-card qb">
       <div class="step-num">01</div>
       <h3>Register your coach</h3>
-      <p>Connect your wallet and register a team under whichever Hero NFT you hold — that Hero coaches your team for the season.</p>
+      <p>Connect your wallet and register a team. Hold a Hero NFT and it coaches your team with a real signature play — no Hero, and you register as "No Coach" and compete on roster and strategy alone.</p>
+    </div>
+    <div class="step-card striker">
+      <div class="step-num">02</div>
+      <h3>Build your roster</h3>
+      <p>Every week, slot 8 held Zappies — QB, Surge Back, Conductor, and Guard — into OFFENSE, BALANCED, or DEFENSE, then dial in your Tempo from Controlled to Aggressive.</p>
     </div>
     <div class="step-card mid">
-      <div class="step-num">02</div>
-      <h3>Set your formation</h3>
-      <p>Pick OFFENSE, BALANCED, or DEFENSE each week and slot 7 held Zappies into Surge Back, Conductor, and Guard lanes.</p>
+      <div class="step-num">03</div>
+      <h3>Play the season</h3>
+      <p>Matches resolve quarter by quarter in real time. Scout your opponents before they lock in, and track every result on Standings.</p>
     </div>
     <div class="step-card guard">
-      <div class="step-num">03</div>
-      <h3>Watch it play out</h3>
-      <p>Matches resolve quarter by quarter in real time. Check Standings any time to see how your team stacks up.</p>
+      <div class="step-num">04</div>
+      <h3>Make the playoffs</h3>
+      <p>The top 4 teams battle it out — win your semifinal, win the championship, and the Bracket crowns your Season Champion.</p>
     </div>
   </div>
 
