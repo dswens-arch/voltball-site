@@ -311,11 +311,6 @@
     </div>
   </div>
 
-  <div id="season-upcoming-panel" style="display:none; text-align:center; padding:60px 20px;">
-    <h1 class="display" style="font-size:24px; margin-bottom:8px;">Season hasn't started yet</h1>
-    <p style="color:var(--text-dim);">Your team's registered — nice. Lineups open once the season officially starts. Check back soon.</p>
-  </div>
-
   <div id="app">
     <div class="team-header">
       <div class="team-identity">
@@ -444,6 +439,7 @@ const peraWallet = new PeraWalletConnect();
 let accountAddress = null;
 let currentTeam = null;      // from get-my-team
 let currentSeason = null;    // from get-my-team
+let seasonNotStarted = false; // true when status is 'upcoming' — roster/formation/tempo browsable, lock-in disabled
 let zappyStats = null;       // loaded once from zappy_stats.json
 let heldZappies = [];        // this wallet's real roster-eligible Zappies, with real stats
 let injuredAssetIds = new Set();  // asset_ids unavailable THIS week — see checkInjuries()
@@ -772,16 +768,20 @@ async function loadMyTeamAndRoster(){
   document.getElementById('no-team-panel').style.display = 'none';
 
   // A season in 'upcoming' status hasn't been started yet -- current_week
-  // is 0, which isn't a real week to submit a lineup for. Without this
-  // guard, someone could fill out the entire 8-slot builder and only
-  // find out it can't actually be submitted at the very end, from a
-  // generic "Missing required field(s)" error server-side (week_number:0
-  // fails a naive truthy check) -- a confusing, late failure for
-  // something the site could have told them up front.
-  if (currentSeason.status === 'upcoming'){
-    statusLine("");
-    document.getElementById('season-upcoming-panel').style.display = 'block';
-    return;
+  // is 0, which isn't a real week to submit a lineup for. That only
+  // needs to block SUBMISSION though, not the whole page -- someone
+  // who's already registered has no reason to be locked out of just
+  // browsing their roster and building a hypothetical lineup while they
+  // wait, especially since registration can realistically stay open for
+  // days. See renderSubmit()/lockIn() for where this actually gates
+  // anything.
+  seasonNotStarted = currentSeason.status === 'upcoming';
+  if (seasonNotStarted){
+    const banner = document.createElement('div');
+    banner.id = 'preview-banner';
+    banner.style.cssText = 'background:var(--panel); border:1px solid var(--qb); border-radius:8px; padding:12px 16px; margin-bottom:24px; font-size:12px; color:var(--text-dim);';
+    banner.innerHTML = `<b style="color:var(--qb);">Preview only</b> — season hasn't started yet. Browse your roster and build a lineup below, but it can't be locked in until then.`;
+    document.getElementById('app').prepend(banner);
   }
 
   statusLine(`Loading your held Zappies…`);
@@ -805,7 +805,7 @@ async function loadMyTeamAndRoster(){
 
   document.getElementById('team-name-display').textContent = currentTeam.team_name;
   document.getElementById('coach-name-display').textContent = currentTeam.hero_type || 'No Coach';
-  document.getElementById('week-display').textContent = currentSeason.current_week;
+  document.getElementById('week-display').textContent = seasonNotStarted ? 'Not started' : currentSeason.current_week;
   const portrait = document.getElementById('coach-portrait');
   const realHero = HERO_IMAGE[currentTeam.hero_type];
   portrait.src = realHero || avatarFor(currentTeam.hero_type || currentTeam.id);
@@ -1095,7 +1095,14 @@ function renderSubmit(){
   const total = Object.values(FORMATIONS[formation]).reduce((a,b)=>a+b,0);
   const filled = assignments.QB.length + assignments.Striker.length + assignments.Mid.length + assignments.Guard.length;
   document.getElementById('progress-count').textContent = `${filled}/${total}`;
-  document.getElementById('lock-btn').classList.toggle('ready', filled === total);
+  const btn = document.getElementById('lock-btn');
+  if (seasonNotStarted){
+    btn.classList.remove('ready');
+    btn.disabled = true;
+    btn.textContent = 'Season Not Started';
+  } else {
+    btn.classList.toggle('ready', filled === total);
+  }
 }
 
 function render(){
@@ -1108,6 +1115,10 @@ function render(){
 
 // ── Real submission — signs the actual lineup and POSTs to submit-lineup. ──
 window.lockIn = async function(){
+  if (seasonNotStarted){
+    toast("Season hasn't started yet — this is preview only.", true);
+    return;
+  }
   const total = Object.values(FORMATIONS[formation]).reduce((a,b)=>a+b,0);
   const filled = assignments.QB.length + assignments.Striker.length + assignments.Mid.length + assignments.Guard.length;
   if (filled !== total) return;
