@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Voltball — Bracket</title>
+<title>Voltball — Results</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
@@ -81,52 +81,39 @@
   #empty-state p{ color:var(--text-dim); font-size:14px; }
   #error-state{ display:none; text-align:center; padding:100px 20px; color:var(--alert); font-size:14px; }
 
-  #bracket-wrap{ display:none; margin-top:36px; }
+  #results-wrap{ display:none; margin-top:28px; }
 
-  .champion-banner{
-    display:none; text-align:center; background:var(--panel); border:1px solid var(--striker);
-    border-radius:14px; padding:32px 20px; margin-bottom:36px;
-    box-shadow: 0 0 40px rgba(232,255,60,0.12);
+  .week-tabs{ display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; margin-bottom:28px; }
+  .week-tab{
+    flex-shrink:0; font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:12px;
+    padding:8px 16px; border-radius:20px; border:1px solid var(--line); background:var(--panel);
+    color:var(--text-dim); cursor:pointer; white-space:nowrap; transition: all .15s ease;
   }
-  .champion-banner .crown{ font-size:38px; margin-bottom:8px; }
-  .champion-banner .cname{ font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:24px; color:var(--striker); }
-  .champion-banner .clabel{ color:var(--text-dim); font-size:12px; text-transform:uppercase; letter-spacing:0.1em; margin-top:6px; }
+  .week-tab:hover{ border-color:var(--text-dim); color:var(--text); }
+  .week-tab.active{ border-color:var(--striker); color:var(--striker); background:rgba(232,255,60,0.08); }
 
-  .round-title{
-    font-size:12px; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-dim);
-    margin: 0 0 14px; display:flex; align-items:center; gap:10px;
+  .match-recap{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    overflow:hidden; margin-bottom:28px;
   }
-  .round-title::after{ content:''; flex:1; height:1px; background:var(--line); }
-
-  .match-block{ display:flex; flex-direction:column; }
-  .match-label{
-    font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:11px; text-transform:uppercase;
-    letter-spacing:0.06em; color:var(--text-dim); margin-bottom:8px;
+  .recap-header{
+    display:flex; align-items:center; justify-content:center; gap:24px;
+    padding:24px 20px; border-bottom:1px solid var(--line); flex-wrap:wrap;
   }
-
-  .bracket-flow{ display:flex; align-items:stretch; gap:0; margin-bottom:40px; }
-  .bracket-semis-col{ display:flex; flex-direction:column; justify-content:space-between; gap:20px; width:100%; max-width:440px; }
-  .bracket-connector{ width:60px; flex-shrink:0; }
-  .bracket-connector svg{ width:100%; height:100%; display:block; }
-  .bracket-final-col{ flex:1; display:flex; align-items:center; max-width:420px; }
-  .bracket-final-col .match-card{ width:100%; }
-
-  .match-card{
-    background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden;
+  .recap-team{ display:flex; align-items:center; gap:12px; }
+  .recap-team.reverse{ flex-direction:row-reverse; text-align:right; }
+  .recap-team img{ width:48px; height:48px; border-radius:10px; object-fit:cover; border:1px solid var(--line); }
+  .recap-team-name{ font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:16px; }
+  .recap-team-name.winner{ color:var(--striker); }
+  .recap-team-hero{ font-size:11px; color:var(--text-dim); }
+  .recap-score{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:28px; color:var(--text-dim); }
+  .recap-score.winner{ color:var(--striker); }
+  .recap-vs{ font-size:12px; color:var(--text-dim); font-family:'Chakra Petch',sans-serif; }
+  .playoff-badge{
+    font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:10px; letter-spacing:0.06em;
+    text-transform:uppercase; color:var(--striker); background:rgba(232,255,60,0.12);
+    padding:2px 10px; border-radius:20px; display:inline-block; margin-top:6px;
   }
-  .match-card.tbd{ opacity:0.55; }
-  .side{
-    display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line);
-  }
-  .side:last-child{ border-bottom:none; }
-  .side.winner{ background:rgba(232,255,60,0.06); }
-  .side img{ width:36px; height:36px; border-radius:8px; object-fit:cover; border:1px solid var(--line); flex-shrink:0; }
-  .side-info{ flex:1; min-width:0; }
-  .side-name{ font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .side-name.winner-text{ color:var(--striker); }
-  .side-hero{ font-size:11px; color:var(--text-dim); }
-  .side-score{ font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:16px; color:var(--text-dim); }
-  .side-score.winner-text{ color:var(--striker); }
   .cpu-tag{
     font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--text-dim);
     border:1px solid var(--line); border-radius:4px; padding:1px 5px; margin-left:6px; vertical-align:middle;
@@ -135,7 +122,46 @@
     font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:9px; letter-spacing:0.04em; color:#0B0D14;
     background:var(--striker); border-radius:4px; padding:1px 6px; margin-left:6px; vertical-align:middle;
   }
-  .tbd-label{ font-size:12px; color:var(--text-dim); font-style:italic; }
+
+  .recap-section{ padding:20px; border-bottom:1px solid var(--line); }
+  .recap-section:last-child{ border-bottom:none; }
+  .recap-section-title{
+    font-size:11px; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-dim);
+    margin-bottom:14px; font-family:'Chakra Petch',sans-serif; font-weight:600;
+  }
+
+  .rosters-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .roster-col-label{ font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:12px; margin-bottom:4px; }
+  .roster-col-tempo{ font-size:10px; color:var(--text-dim); margin-bottom:10px; }
+  .lanes-scout{ display:grid; grid-template-columns: repeat(2,1fr); gap:10px; }
+  .lane-scout-label{
+    font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:10px; text-transform:uppercase;
+    letter-spacing:0.04em; margin-bottom:6px;
+  }
+  .lane-scout[data-pos="QB"] .lane-scout-label{ color:var(--qb); }
+  .lane-scout[data-pos="Striker"] .lane-scout-label{ color:var(--striker); }
+  .lane-scout[data-pos="Mid"] .lane-scout-label{ color:var(--mid); }
+  .lane-scout[data-pos="Guard"] .lane-scout-label{ color:var(--guard); }
+  .scout-chip{
+    display:flex; align-items:center; gap:6px; padding:5px 7px; border-radius:6px;
+    background:rgba(255,255,255,0.02); border:1px solid var(--line); margin-bottom:5px;
+  }
+  .scout-chip img{ width:22px; height:22px; border-radius:4px; object-fit:cover; flex-shrink:0; }
+  .scout-chip .cname{ font-size:11px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .scout-chip .cstat{ font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--text-dim); flex-shrink:0; }
+  .placeholder-note{ font-size:12px; color:var(--text-dim); font-style:italic; }
+
+  .quarters-table{ width:100%; border-collapse:collapse; }
+  .quarters-table th{
+    font-family:'Chakra Petch',sans-serif; font-size:10px; text-transform:uppercase; letter-spacing:0.06em;
+    color:var(--text-dim); text-align:center; padding:6px; font-weight:600;
+  }
+  .quarters-table td{ text-align:center; padding:6px; font-family:'IBM Plex Mono',monospace; font-size:13px; }
+  .quarters-table td:first-child, .quarters-table th:first-child{ text-align:left; }
+
+  .highlights-list{ display:flex; flex-direction:column; gap:6px; }
+  .highlight-line{ font-size:13px; line-height:1.5; }
+  .highlight-line b{ color:var(--text); }
 
   .toast{
     position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-10px); opacity:0;
@@ -154,10 +180,10 @@
     .nav-link{ font-size:11px; }
     .wallet-btn{ font-size:12px; padding:8px 14px; }
     .wallet-btn.connected{ font-size:11px; padding:7px 12px; }
-    .bracket-flow{ flex-direction:column; gap:20px; }
-    .bracket-connector{ display:none; }
-    .bracket-semis-col{ max-width:none; gap:16px; }
-    .bracket-final-col{ max-width:none; }
+    .recap-header{ flex-direction:column; gap:12px; }
+    .recap-team.reverse{ flex-direction:row; text-align:left; }
+    .rosters-grid{ grid-template-columns:1fr; }
+    .lanes-scout{ grid-template-columns:1fr; }
   }
 </style>
 </head>
@@ -170,8 +196,8 @@
       <a class="nav-link" href="./lineup.html">Lineup</a>
       <a class="nav-link" href="./scout.html">Scout</a>
       <a class="nav-link" href="./standings.html">Standings</a>
-      <a class="nav-link active" href="./bracket.html">Bracket</a>
-      <a class="nav-link" href="./results.html">Results</a>
+      <a class="nav-link" href="./bracket.html">Bracket</a>
+      <a class="nav-link active" href="./results.html">Results</a>
     </div>
     <button class="wallet-btn" id="wallet-btn" onclick="connectWallet()">Connect Wallet</button>
   </div>
@@ -179,37 +205,20 @@
 
 <main>
   <div class="page-header">
-    <h1 class="display" id="page-title">Playoff Bracket</h1>
+    <h1 class="display" id="page-title">Results</h1>
     <div class="sub" id="page-sub">Loading season…</div>
   </div>
 
-  <div id="loading">Loading bracket…</div>
+  <div id="loading">Loading results…</div>
   <div id="error-state"></div>
   <div id="empty-state">
-    <h2 class="display">Playoffs haven't started yet</h2>
-    <p id="empty-detail">The top 4 teams get seeded into semifinals once the regular season wraps up — check back then.</p>
+    <h2 class="display">No results yet</h2>
+    <p>Nothing's resolved yet this season — check back once the first week plays out.</p>
   </div>
 
-  <div id="bracket-wrap">
-    <div class="champion-banner" id="champion-banner">
-      <div class="crown">🏆</div>
-      <div class="cname" id="champion-name">—</div>
-      <div class="clabel">Season Champion</div>
-    </div>
-
-    <div class="round-title">Semifinals → Championship</div>
-    <div class="bracket-flow">
-      <div class="bracket-semis-col" id="semis-col"></div>
-      <div class="bracket-connector">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-          <line x1="0" y1="27" x2="50" y2="27" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
-          <line x1="0" y1="80" x2="50" y2="80" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
-          <line x1="50" y1="27" x2="50" y2="80" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
-          <line x1="50" y1="53" x2="100" y2="53" stroke="var(--line)" stroke-width="1.5" vector-effect="non-scaling-stroke"/>
-        </svg>
-      </div>
-      <div class="bracket-final-col" id="final-col"></div>
-    </div>
+  <div id="results-wrap">
+    <div class="week-tabs" id="week-tabs"></div>
+    <div id="matches-container"></div>
   </div>
 </main>
 
@@ -227,6 +236,23 @@ const peraWallet = new PeraWalletConnect();
 let accountAddress = null;
 let currentSeason = null;
 let myTeamId = null;
+let allMatches = [];
+let teamsById = {};
+let zappyStats = {};
+
+const FORMATIONS = {
+  OFFENSE:  {QB:1, Striker:5, Mid:1, Guard:1},
+  BALANCED: {QB:1, Striker:3, Mid:2, Guard:2},
+  DEFENSE:  {QB:1, Striker:1, Mid:2, Guard:4},
+};
+const POSITION_STAT = {QB:"SPK", Striker:"VLT", Mid:"SPK", Guard:"INS"};
+const DISPLAY_NAME = {QB:"QB", Striker:"Surge Back", Mid:"Conductor", Guard:"Guard"};
+const QUARTER_LABEL = ["Q1","Q2","Q3","Q4"];
+// Mirrors voltball_embeds.py's build_match_embed highlight filter
+// exactly, so the site shows the same events Discord would call out —
+// just uncapped, since a webpage has no reason to truncate at 10 the
+// way a Discord embed does.
+const HIGHLIGHT_MARKERS = ["⚡","❄️","🎭","📈","🛑","🥊","🦸","📋","🤕","TIE"];
 
 const HERO_IMAGE = {
   Bear:      "https://ipfs-pera.algonode.dev/ipfs/bafkreidtl5ha7is6ze5lfgs6fpfagzvtpkjsx3327urgvge463c2kmimem?optimizer=image&width=200&quality=70",
@@ -271,6 +297,14 @@ async function supabaseGet(path){
   return res.json();
 }
 
+let zappyStatsPromise = null;
+async function loadZappyStats(){
+  if (!zappyStatsPromise){
+    zappyStatsPromise = fetch('./zappy_stats.json').then(r => r.json());
+  }
+  return zappyStatsPromise;
+}
+
 async function signPayload(canonicalObj, humanMessage){
   const message = JSON.stringify(canonicalObj);
   const signedData = await peraWallet.signData(
@@ -308,19 +342,12 @@ function getCachedTeam(address){
     const cached = JSON.parse(raw);
     if (Date.now() - cached.cachedAt > TEAM_CACHE_TTL_MS) return null;
     return cached.team;
-  } catch (err) {
-    console.error("Reading team cache failed (non-fatal):", err);
-    return null;
-  }
+  } catch (err) { console.error("Reading team cache failed (non-fatal):", err); return null; }
 }
 function setCachedTeam(address, team){
-  try {
-    localStorage.setItem(teamCacheKey(address), JSON.stringify({ team, cachedAt: Date.now() }));
-  } catch (err) {
-    console.error("Writing team cache failed (non-fatal):", err);
-  }
+  try { localStorage.setItem(teamCacheKey(address), JSON.stringify({ team, cachedAt: Date.now() })); }
+  catch (err) { console.error("Writing team cache failed (non-fatal):", err); }
 }
-
 async function getMyTeam(){
   const guildId = GUILD_ID;
   const timestamp = Math.floor(Date.now() / 1000);
@@ -335,43 +362,112 @@ function fmtStatus(status){
   return { active: "In Season", playoffs: "Playoffs", complete: "Final", upcoming: "Upcoming" }[status] || status;
 }
 
-// Renders one match card. pairing may be null (round not seeded yet --
-// e.g. championship before semis resolve). match may be null (seeded
-// but not yet resolved this week).
-function renderMatchCard(pairing, match, teamsById){
-  if (!pairing){
-    return `<div class="match-card tbd">
-      <div class="side"><div class="tbd-label">Awaiting semifinal winners</div></div>
+function renderRosterPanel(lineupSnapshot, stats){
+  if (!lineupSnapshot) return `<div class="placeholder-note">No roster data for this match.</div>`;
+  const counts = FORMATIONS[lineupSnapshot.formation] || {};
+  const lanesHtml = Object.keys(POSITION_STAT).map(pos => {
+    const entries = (lineupSnapshot.assignments && lineupSnapshot.assignments[pos]) || [];
+    const chips = entries.map(entry => {
+      const live = stats[String(entry.asset_id)];
+      const img = (live && live.image_url) || avatarFor(entry.asset_id);
+      const statVal = entry[POSITION_STAT[pos]];
+      return `<div class="scout-chip">
+        <img src="${img}" onerror="this.onerror=null; this.src='${avatarFor(entry.asset_id)}';" alt="">
+        <span class="cname">${entry.name}</span>
+        <span class="cstat">${POSITION_STAT[pos]} ${statVal}</span>
+      </div>`;
+    }).join('') || `<div class="placeholder-note">Empty</div>`;
+    return `<div class="lane-scout" data-pos="${pos}">
+      <div class="lane-scout-label">${DISPLAY_NAME[pos]} · ${entries.length}/${counts[pos] ?? '?'}</div>
+      ${chips}
     </div>`;
-  }
+  }).join('');
+  return `<div class="lanes-scout">${lanesHtml}</div>`;
+}
 
-  const teamA = teamsById[pairing.team_a_id];
-  const teamB = teamsById[pairing.team_b_id];
-  const resolved = !!match;
-  const aWon = resolved && match.winner_team_id === pairing.team_a_id;
-  const bWon = resolved && match.winner_team_id === pairing.team_b_id;
+function renderMatchRecap(match, stats){
+  const teamA = teamsById[match.team_a_id];
+  const teamB = teamsById[match.team_b_id];
+  const aWon = match.winner_team_id === match.team_a_id;
+  const bWon = match.winner_team_id === match.team_b_id;
 
-  const sideHtml = (team, teamId, won, score) => {
-    if (!team) return `<div class="side"><div class="tbd-label">Unknown team</div></div>`;
-    const img = (team.hero_type && HERO_IMAGE[team.hero_type]) || avatarFor(teamId);
-    const isYou = teamId === myTeamId;
-    return `<div class="side ${won ? 'winner' : ''}">
-      <img src="${img}" onerror="this.onerror=null; this.src='${avatarFor(teamId)}';" alt="">
-      <div class="side-info">
-        <div class="side-name ${won ? 'winner-text' : ''}">${team.team_name}${team.is_cpu ? '<span class="cpu-tag">CPU</span>' : ''}${isYou ? '<span class="you-tag">YOU</span>' : ''}</div>
-        <div class="side-hero">${team.hero_type || 'No Coach'}</div>
+  const teamImg = (t) => (t && t.hero_type && HERO_IMAGE[t.hero_type]) || avatarFor(t ? t.id : 'unknown');
+  const isYou = (id) => id === myTeamId;
+
+  const highlights = (match.log_lines || []).filter(line => HIGHLIGHT_MARKERS.some(m => line.includes(m)));
+
+  const quartersRows = (match.quarters || []).map((q, i) => `
+    <tr><td>${QUARTER_LABEL[i] || `Q${q.quarter}`}</td><td>${q.team_a_voltage}</td><td>${q.team_b_voltage}</td></tr>
+  `).join('');
+
+  return `<div class="match-recap">
+    <div class="recap-header">
+      <div class="recap-team">
+        <img src="${teamImg(teamA)}" onerror="this.onerror=null; this.src='${avatarFor(match.team_a_id)}';" alt="">
+        <div>
+          <div class="recap-team-name ${aWon ? 'winner' : ''}">${teamA ? teamA.team_name : 'Unknown'}${teamA && teamA.is_cpu ? '<span class="cpu-tag">CPU</span>' : ''}${isYou(match.team_a_id) ? '<span class="you-tag">YOU</span>' : ''}</div>
+          <div class="recap-team-hero">${(teamA && teamA.hero_type) || 'No Coach'}</div>
+        </div>
       </div>
-      ${resolved ? `<div class="side-score ${won ? 'winner-text' : ''}">${Math.round(score)}</div>` : ''}
-    </div>`;
-  };
+      <div style="text-align:center;">
+        <div><span class="recap-score ${aWon ? 'winner' : ''}">${Math.round(match.team_a_score)}</span> <span class="recap-vs">–</span> <span class="recap-score ${bWon ? 'winner' : ''}">${Math.round(match.team_b_score)}</span></div>
+        ${match.is_playoff ? `<div class="playoff-badge">Playoff</div>` : ''}
+      </div>
+      <div class="recap-team reverse">
+        <img src="${teamImg(teamB)}" onerror="this.onerror=null; this.src='${avatarFor(match.team_b_id)}';" alt="">
+        <div>
+          <div class="recap-team-name ${bWon ? 'winner' : ''}">${teamB ? teamB.team_name : 'Unknown'}${teamB && teamB.is_cpu ? '<span class="cpu-tag">CPU</span>' : ''}${isYou(match.team_b_id) ? '<span class="you-tag">YOU</span>' : ''}</div>
+          <div class="recap-team-hero">${(teamB && teamB.hero_type) || 'No Coach'}</div>
+        </div>
+      </div>
+    </div>
 
-  const scoreA = resolved ? (pairing.team_a_id === match.team_a_id ? match.team_a_score : match.team_b_score) : null;
-  const scoreB = resolved ? (pairing.team_b_id === match.team_a_id ? match.team_a_score : match.team_b_score) : null;
+    <div class="recap-section">
+      <div class="recap-section-title">What Each Team Played</div>
+      <div class="rosters-grid">
+        <div>
+          <div class="roster-col-label">${teamA ? teamA.team_name : 'Unknown'}</div>
+          <div class="roster-col-tempo">${match.team_a_lineup ? `${match.team_a_lineup.formation} · Tempo ${match.team_a_lineup.tempo}` : ''}</div>
+          ${renderRosterPanel(match.team_a_lineup, stats)}
+        </div>
+        <div>
+          <div class="roster-col-label">${teamB ? teamB.team_name : 'Unknown'}</div>
+          <div class="roster-col-tempo">${match.team_b_lineup ? `${match.team_b_lineup.formation} · Tempo ${match.team_b_lineup.tempo}` : ''}</div>
+          ${renderRosterPanel(match.team_b_lineup, stats)}
+        </div>
+      </div>
+    </div>
 
-  return `<div class="match-card">
-    ${sideHtml(teamA, pairing.team_a_id, aWon, scoreA)}
-    ${sideHtml(teamB, pairing.team_b_id, bWon, scoreB)}
+    ${match.quarters ? `<div class="recap-section">
+      <div class="recap-section-title">Quarter by Quarter</div>
+      <table class="quarters-table">
+        <thead><tr><th></th><th>${teamA ? teamA.team_name : 'A'}</th><th>${teamB ? teamB.team_name : 'B'}</th></tr></thead>
+        <tbody>${quartersRows}</tbody>
+      </table>
+    </div>` : ''}
+
+    ${highlights.length ? `<div class="recap-section">
+      <div class="recap-section-title">Highlights (${highlights.length})</div>
+      <div class="highlights-list">${highlights.map(h => `<div class="highlight-line">${h.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</div>`).join('')}</div>
+    </div>` : ''}
   </div>`;
+}
+
+function renderWeek(week){
+  const weekMatches = allMatches.filter(m => m.week_number === week);
+  const container = document.getElementById('matches-container');
+
+  const needsStats = weekMatches.some(m =>
+    (m.team_a_lineup && !teamsById[m.team_a_id]?.is_cpu) || (m.team_b_lineup && !teamsById[m.team_b_id]?.is_cpu)
+  );
+
+  (needsStats ? loadZappyStats() : Promise.resolve({})).then(stats => {
+    container.innerHTML = weekMatches.map(m => renderMatchRecap(m, stats)).join('');
+  });
+
+  document.querySelectorAll('.week-tab').forEach(tab => {
+    tab.classList.toggle('active', Number(tab.dataset.week) === week);
+  });
 }
 
 async function init(){
@@ -392,74 +488,41 @@ async function init(){
     const pill = `<span class="status-pill ${season.status}">${fmtStatus(season.status)}</span>`;
     document.getElementById('page-sub').innerHTML = `${season.name || 'Voltball'} ${pill}`;
 
-    if (season.status === 'upcoming' || season.status === 'active'){
-      document.getElementById('loading').style.display = 'none';
-      const weeksLeft = season.status === 'active' ? Math.max(0, season.week_count - season.current_week + 1) : season.week_count;
-      document.getElementById('empty-detail').textContent =
-        season.status === 'active'
-          ? `Regular season in progress — Week ${season.current_week} of ${season.week_count}. The bracket seeds once the last regular-season week resolves.`
-          : `The top 4 teams get seeded into semifinals once the ${season.week_count}-week regular season wraps up.`;
-      document.getElementById('empty-state').style.display = 'block';
-      return;
-    }
-
-    // status is 'playoffs' or 'complete' -- semis are always week_count+1, final is week_count+2.
-    const semisWeek = season.week_count + 1;
-    const finalWeek = season.week_count + 2;
-
-    const [schedule, matches, teams] = await Promise.all([
-      supabaseGet(`voltball_schedule?season_id=eq.${season.id}&is_playoff=eq.true&select=*`),
-      supabaseGet(`voltball_matches?season_id=eq.${season.id}&is_playoff=eq.true&select=*`),
+    const [matches, teams] = await Promise.all([
+      supabaseGet(`voltball_matches?season_id=eq.${season.id}&select=*&order=week_number.desc`),
       supabaseGet(`voltball_teams_public?season_id=eq.${season.id}&select=*`),
     ]);
 
     document.getElementById('loading').style.display = 'none';
 
-    const teamsById = {};
+    teamsById = {};
     for (const t of teams) teamsById[t.id] = t;
+    allMatches = matches;
 
-    const semisPairings = schedule.filter(s => s.week_number === semisWeek);
-    const finalPairing = schedule.find(s => s.week_number === finalWeek) || null;
-    const semisMatches = matches.filter(m => m.week_number === semisWeek);
-    const finalMatch = matches.find(m => m.week_number === finalWeek) || null;
-
-    if (semisPairings.length === 0){
-      // Playoffs status flipped but the bracket-seeding step hasn't
-      // landed yet (race between status update and schedule write) --
-      // treat this the same as "not started" rather than show a blank page.
-      document.getElementById('empty-detail').textContent = "The bracket is being seeded — check back in a moment.";
+    if (!matches.length){
       document.getElementById('empty-state').style.display = 'block';
       return;
     }
 
-    document.getElementById('page-title').textContent = season.status === 'complete' ? 'Playoff Bracket — Final' : `Playoff Bracket — Week ${season.current_week}`;
+    const weeks = [...new Set(matches.map(m => m.week_number))].sort((a,b) => a - b);
+    const defaultWeek = weeks[weeks.length - 1]; // most recent week with results
 
-    const semisGrid = document.getElementById('semis-col');
-    semisGrid.innerHTML = semisPairings.map((pairing, i) => {
-      const match = semisMatches.find(m =>
-        (m.team_a_id === pairing.team_a_id && m.team_b_id === pairing.team_b_id) ||
-        (m.team_a_id === pairing.team_b_id && m.team_b_id === pairing.team_a_id)
-      ) || null;
-      return `<div class="match-block"><div class="match-label">Semifinal ${i + 1}</div>${renderMatchCard(pairing, match, teamsById)}</div>`;
+    const tabsEl = document.getElementById('week-tabs');
+    tabsEl.innerHTML = weeks.map(w => {
+      const isPlayoffWeek = matches.some(m => m.week_number === w && m.is_playoff);
+      const label = isPlayoffWeek ? `Playoffs · Wk ${w}` : `Week ${w}`;
+      return `<button class="week-tab" data-week="${w}" onclick="window.selectWeek(${w})">${label}</button>`;
     }).join('');
 
-    const finalGrid = document.getElementById('final-col');
-    finalGrid.innerHTML = `<div class="match-block"><div class="match-label">Championship</div>${renderMatchCard(finalPairing, finalMatch, teamsById)}</div>`;
+    window.selectWeek = (w) => renderWeek(w);
+    renderWeek(defaultWeek);
 
-    if (finalMatch){
-      const championTeam = teamsById[finalMatch.winner_team_id];
-      if (championTeam){
-        document.getElementById('champion-name').textContent = championTeam.team_name;
-        document.getElementById('champion-banner').style.display = 'block';
-      }
-    }
-
-    document.getElementById('bracket-wrap').style.display = 'block';
+    document.getElementById('results-wrap').style.display = 'block';
   } catch (err) {
     console.error(err);
     document.getElementById('loading').style.display = 'none';
     const el = document.getElementById('error-state');
-    el.textContent = "Couldn't load the bracket — see console for details.";
+    el.textContent = "Couldn't load results — see console for details.";
     el.style.display = 'block';
   }
 }
@@ -477,7 +540,7 @@ window.connectWallet = async function(){
     btn.innerHTML = `<span class="dot"></span> ${accountAddress.slice(0,6)}…${accountAddress.slice(-4)}`;
     btn.classList.add('connected');
     btn.disabled = false;
-    resolveAndHighlightMyTeam();
+    resolveMyTeam();
   } catch (err) {
     btn.textContent = "Connect Wallet";
     btn.disabled = false;
@@ -486,15 +549,11 @@ window.connectWallet = async function(){
   }
 };
 
-async function resolveAndHighlightMyTeam(){
+async function resolveMyTeam(){
   await seasonLoadPromise;
   if (!currentSeason) return;
-
   let team = getCachedTeam(accountAddress);
-  if (team && team.season_id !== currentSeason.id){
-    team = null;
-  }
-
+  if (team && team.season_id !== currentSeason.id) team = null;
   if (!team){
     try {
       const { status, result } = await getMyTeam();
@@ -502,19 +561,13 @@ async function resolveAndHighlightMyTeam(){
         team = result.team;
         setCachedTeam(accountAddress, team);
       }
-    } catch (err) {
-      console.error(err);
-      return;
-    }
+    } catch (err) { console.error(err); return; }
   }
-
   if (!team) return;
   myTeamId = team.id;
-  // Re-render is the simplest way to apply the highlight after the
-  // fact -- the bracket is small (at most 3 cards), so a full re-run
-  // of init() is cheap and avoids maintaining a second code path just
-  // to patch classes onto already-rendered cards.
-  init();
+  // Re-render whichever week is currently showing so the YOU tag applies immediately.
+  const activeTab = document.querySelector('.week-tab.active');
+  if (activeTab) renderWeek(Number(activeTab.dataset.week));
 }
 
 peraWallet.reconnectSession().then(async (accounts) => {
@@ -524,7 +577,7 @@ peraWallet.reconnectSession().then(async (accounts) => {
     const btn = document.getElementById('wallet-btn');
     btn.innerHTML = `<span class="dot"></span> ${accountAddress.slice(0,6)}…${accountAddress.slice(-4)}`;
     btn.classList.add('connected');
-    resolveAndHighlightMyTeam();
+    resolveMyTeam();
   }
 }).catch(() => {});
 </script>
