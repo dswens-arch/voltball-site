@@ -554,6 +554,25 @@ async function loadZappyStats(){
 // ── Fetch this wallet's REAL held Zappies from the Algorand indexer
 // directly (public read, no auth needed), paginated properly, cross-
 // referenced against zappy_stats.json for real VLT/INS/SPK. ──
+// Public read (voltball_season_zappy_stats has a public-read policy,
+// same as everything else) — season-allocated stats override the
+// static zappy_stats.json (permanent trait-derived) values below, when
+// a season is actually active. Only queried for THIS wallet's held
+// asset_ids, not the whole ~1,678-row table.
+async function loadSeasonStats(seasonId, assetIds){
+  if (!seasonId || !assetIds.length) return {};
+  try {
+    const idList = assetIds.join(',');
+    const rows = await supabaseGet(`voltball_season_zappy_stats?season_id=eq.${seasonId}&asset_id=in.(${idList})&select=asset_id,VLT,INS,SPK`);
+    const byId = {};
+    for (const r of rows ?? []) byId[r.asset_id] = r;
+    return byId;
+  } catch (err) {
+    console.error("Couldn't load season stats (non-fatal, falling back to permanent stats):", err);
+    return {};
+  }
+}
+
 async function fetchHeldZappies(address){
   const stats = await loadZappyStats();
   const held = [];
@@ -573,6 +592,20 @@ async function fetchHeldZappies(address){
     }
     nextToken = data['next-token'] ?? null;
   } while (nextToken);
+
+  // Season allocation only applies once a season has actually started
+  // (active/playoffs) -- "upcoming" hasn't run allocation yet.
+  const seasonActive = currentSeason && (currentSeason.status === 'active' || currentSeason.status === 'playoffs');
+  if (seasonActive && held.length){
+    const seasonStats = await loadSeasonStats(currentSeason.id, held.map(z => z.asset_id));
+    for (const z of held){
+      const allocated = seasonStats[z.asset_id];
+      if (allocated){
+        z.VLT = allocated.VLT; z.INS = allocated.INS; z.SPK = allocated.SPK;
+      }
+    }
+  }
+
   return held;
 }
 
