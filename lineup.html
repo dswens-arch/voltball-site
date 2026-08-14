@@ -205,7 +205,21 @@
   .zcard:hover{ border-color:#3a3f5a; transform: translateY(-1px); }
   .zcard.used{ opacity:.3; cursor:not-allowed; }
   .zcard.used:hover{ transform:none; }
-  .zcard.injured{ opacity:.5; cursor:not-allowed; border-color:var(--alert); }
+  .zcard.band-legendary{ border-color:#F0B429; box-shadow: 0 0 0 1px #F0B429; }
+  .zcard.band-all-pro{ border-color:#FF6B4A; box-shadow: 0 0 0 1px #FF6B4A; }
+  .zcard.band-starter{ border-color:#4A9EFF; box-shadow: 0 0 0 1px #4A9EFF; }
+  .zcard.band-backup{ border-color:#5A6478; }
+  .zcard.band-practice-squad{ border-color:#3A3F52; }
+  .band-tag{
+    display:inline-block; font-size:9px; padding:1px 6px; border-radius:4px; margin-top:4px;
+    font-family:'Chakra Petch',sans-serif; font-weight:700; letter-spacing:0.03em; text-transform:uppercase;
+  }
+  .band-tag.band-legendary{ background:rgba(240,180,41,0.18); color:#F0B429; }
+  .band-tag.band-all-pro{ background:rgba(255,107,74,0.18); color:#FF6B4A; }
+  .band-tag.band-starter{ background:rgba(74,158,255,0.18); color:#4A9EFF; }
+  .band-tag.band-backup{ background:rgba(90,100,120,0.25); color:#9AA3B8; }
+  .band-tag.band-practice-squad{ background:rgba(58,63,82,0.4); color:var(--text-dim); }
+  .zcard.injured{ opacity:.5; cursor:not-allowed; border-color:var(--alert); box-shadow: 0 0 0 1px var(--alert); }
   .zcard.injured:hover{ transform:none; }
   .zcard .zthumb{ width:100%; aspect-ratio:1; object-fit:cover; display:block; background:var(--panel-2); margin-bottom:10px; }
   .zcard .zbody{ padding:0 12px; }
@@ -563,7 +577,7 @@ async function loadSeasonStats(seasonId, assetIds){
   if (!seasonId || !assetIds.length) return {};
   try {
     const idList = assetIds.join(',');
-    const rows = await supabaseGet(`voltball_season_zappy_stats?season_id=eq.${seasonId}&asset_id=in.(${idList})&select=asset_id,VLT,INS,SPK`);
+    const rows = await supabaseGet(`voltball_season_zappy_stats?season_id=eq.${seasonId}&asset_id=in.(${idList})&select=asset_id,VLT,INS,SPK,band`);
     const byId = {};
     for (const r of rows ?? []) byId[r.asset_id] = r;
     return byId;
@@ -593,15 +607,15 @@ async function fetchHeldZappies(address){
     nextToken = data['next-token'] ?? null;
   } while (nextToken);
 
-  // Season allocation only applies once a season has actually started
-  // (active/playoffs) -- "upcoming" hasn't run allocation yet.
-  const seasonActive = currentSeason && (currentSeason.status === 'active' || currentSeason.status === 'playoffs');
+  // Season allocation now runs at /voltball_season_create, so it exists
+  // (and should show) from 'upcoming' onward, not just once active.
+  const seasonActive = currentSeason && ['upcoming', 'active', 'playoffs'].includes(currentSeason.status);
   if (seasonActive && held.length){
     const seasonStats = await loadSeasonStats(currentSeason.id, held.map(z => z.asset_id));
     for (const z of held){
       const allocated = seasonStats[z.asset_id];
       if (allocated){
-        z.VLT = allocated.VLT; z.INS = allocated.INS; z.SPK = allocated.SPK;
+        z.VLT = allocated.VLT; z.INS = allocated.INS; z.SPK = allocated.SPK; z.band = allocated.band;
       }
     }
   }
@@ -1098,7 +1112,8 @@ function renderRoster(){
     const isDisabled = isUsed || isInjured;
     const pct = percentileWithin(stat, z[stat]);
     const tier = fitTier(pct);
-    return `<div class="zcard ${isUsed?'used':''} ${isInjured?'injured':''}" onclick="${isDisabled ? '' : `window.assign('${activeTab}', ${z.asset_id})`}">
+    const bandClass = z.band ? `band-${z.band.toLowerCase().replace(/\s+/g, '-')}` : '';
+    return `<div class="zcard ${isUsed?'used':''} ${isInjured?'injured':''} ${!isUsed && !isInjured ? bandClass : ''}" onclick="${isDisabled ? '' : `window.assign('${activeTab}', ${z.asset_id})`}">
       ${imgWithFallback(z.image_url, z.asset_id, "zthumb", 'loading="lazy"')}
       <div class="zbody">
         <div class="zn">${z.name}</div>
@@ -1107,6 +1122,7 @@ function renderRoster(){
           <span class="st ${stat==='INS'?'hot':''}">INS ${z.INS}</span>
           <span class="st ${stat==='SPK'?'hot':''}">SPK ${z.SPK}</span>
         </div>
+        ${z.band ? `<div class="band-tag ${bandClass}">${z.band}</div>` : ''}
         ${isInjured ? `<div class="fit-badge injured-badge">🤕 Injured this week</div>` : (tier ? `<div class="fit-badge ${tier.cls}">${tier.label} ${DISPLAY_NAME[activeTab]}</div>` : '')}
       </div>
     </div>`;
