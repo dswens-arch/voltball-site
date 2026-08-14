@@ -199,7 +199,7 @@
 
   .roster-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap:10px; margin-bottom:24px; }
   .zcard{
-    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:0 0 12px;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:0;
     cursor:pointer; transition: all .15s ease; overflow:hidden;
   }
   .zcard:hover{ border-color:#3a3f5a; transform: translateY(-1px); }
@@ -210,19 +210,19 @@
   .zcard.band-starter{ border-color:#4A9EFF; box-shadow: 0 0 0 1px #4A9EFF; }
   .zcard.band-backup{ border-color:#5A6478; }
   .zcard.band-practice-squad{ border-color:#3A3F52; }
-  .band-tag{
-    display:inline-block; font-size:9px; padding:1px 6px; border-radius:4px; margin-top:4px;
-    font-family:'Chakra Petch',sans-serif; font-weight:700; letter-spacing:0.03em; text-transform:uppercase;
+  .band-footer{
+    text-align:center; padding:7px 0; font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:11px;
+    letter-spacing:0.05em; text-transform:uppercase;
   }
-  .band-tag.band-legendary{ background:rgba(240,180,41,0.18); color:#F0B429; }
-  .band-tag.band-all-pro{ background:rgba(255,107,74,0.18); color:#FF6B4A; }
-  .band-tag.band-starter{ background:rgba(74,158,255,0.18); color:#4A9EFF; }
-  .band-tag.band-backup{ background:rgba(90,100,120,0.25); color:#9AA3B8; }
-  .band-tag.band-practice-squad{ background:rgba(58,63,82,0.4); color:var(--text-dim); }
+  .band-footer.band-legendary{ background:#F0B429; color:#2B1D00; }
+  .band-footer.band-all-pro{ background:#FF6B4A; color:#3A0F04; }
+  .band-footer.band-starter{ background:#4A9EFF; color:#00152B; }
+  .band-footer.band-backup{ background:#5A6478; color:#EDEFF4; }
+  .band-footer.band-practice-squad{ background:#2B2F3E; color:#9AA3B8; }
   .zcard.injured{ opacity:.5; cursor:not-allowed; border-color:var(--alert); box-shadow: 0 0 0 1px var(--alert); }
   .zcard.injured:hover{ transform:none; }
   .zcard .zthumb{ width:100%; aspect-ratio:1; object-fit:cover; display:block; background:var(--panel-2); margin-bottom:10px; }
-  .zcard .zbody{ padding:0 12px; }
+  .zcard .zbody{ padding:0 12px 12px; }
   .zcard .zn{ font-size:13px; font-weight:600; margin-bottom:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .zstats{ display:flex; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:11px; }
   .zstats .st{ display:flex; align-items:center; gap:3px; color:var(--text-dim); }
@@ -1122,9 +1122,9 @@ function renderRoster(){
           <span class="st ${stat==='INS'?'hot':''}">INS ${z.INS}</span>
           <span class="st ${stat==='SPK'?'hot':''}">SPK ${z.SPK}</span>
         </div>
-        ${z.band ? `<div class="band-tag ${bandClass}">${z.band}</div>` : ''}
         ${isInjured ? `<div class="fit-badge injured-badge">🤕 Injured this week</div>` : (tier ? `<div class="fit-badge ${tier.cls}">${tier.label} ${DISPLAY_NAME[activeTab]}</div>` : '')}
       </div>
+      ${z.band ? `<div class="band-footer ${bandClass}">${z.band}</div>` : ''}
     </div>`;
   }).join('');
 }
