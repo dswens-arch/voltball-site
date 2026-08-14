@@ -130,6 +130,15 @@
     margin-bottom:14px; font-family:'Chakra Petch',sans-serif; font-weight:600;
   }
 
+  .recap-toggle{
+    width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
+    background:none; border:none; border-top:1px solid var(--line); cursor:pointer;
+    padding:12px; font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:12px;
+    color:var(--text-dim); transition: all .15s ease; letter-spacing:0.02em;
+  }
+  .recap-toggle:hover{ color:var(--striker); background:rgba(232,255,60,0.04); }
+  .toggle-arrow{ display:inline-block; transition: transform .2s ease; font-size:10px; }
+
   .rosters-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
   .roster-col-label{ font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:12px; margin-bottom:4px; }
   .roster-col-tempo{ font-size:10px; color:var(--text-dim); margin-bottom:10px; }
@@ -252,7 +261,7 @@ const QUARTER_LABEL = ["Q1","Q2","Q3","Q4"];
 // exactly, so the site shows the same events Discord would call out —
 // just uncapped, since a webpage has no reason to truncate at 10 the
 // way a Discord embed does.
-const HIGHLIGHT_MARKERS = ["⚡","❄️","🎭","📈","🛑","🥊","🦸","📋","🤕","TIE"];
+const HIGHLIGHT_MARKERS = ["⚡","❄️","🎭","📈","🛑","🥊","🦸","📋","🤕","🐊","TIE"];
 
 const HERO_IMAGE = {
   Bear:      "https://ipfs-pera.algonode.dev/ipfs/bafkreidtl5ha7is6ze5lfgs6fpfagzvtpkjsx3327urgvge463c2kmimem?optimizer=image&width=200&quality=70",
@@ -422,34 +431,41 @@ function renderMatchRecap(match, stats){
       </div>
     </div>
 
-    <div class="recap-section">
-      <div class="recap-section-title">What Each Team Played</div>
-      <div class="rosters-grid">
-        <div>
-          <div class="roster-col-label">${teamA ? teamA.team_name : 'Unknown'}</div>
-          <div class="roster-col-tempo">${match.team_a_lineup ? `${match.team_a_lineup.formation} · Tempo ${match.team_a_lineup.tempo}` : ''}</div>
-          ${renderRosterPanel(match.team_a_lineup, stats)}
-        </div>
-        <div>
-          <div class="roster-col-label">${teamB ? teamB.team_name : 'Unknown'}</div>
-          <div class="roster-col-tempo">${match.team_b_lineup ? `${match.team_b_lineup.formation} · Tempo ${match.team_b_lineup.tempo}` : ''}</div>
-          ${renderRosterPanel(match.team_b_lineup, stats)}
+    <button class="recap-toggle" onclick="window.toggleRecap('${match.id}')">
+      <span id="toggle-text-${match.id}">Show Full Recap</span>
+      <span id="toggle-arrow-${match.id}" class="toggle-arrow">▾</span>
+    </button>
+
+    <div class="recap-body" id="recap-body-${match.id}" style="display:none;">
+      <div class="recap-section">
+        <div class="recap-section-title">What Each Team Played</div>
+        <div class="rosters-grid">
+          <div>
+            <div class="roster-col-label">${teamA ? teamA.team_name : 'Unknown'}</div>
+            <div class="roster-col-tempo">${match.team_a_lineup ? `${match.team_a_lineup.formation} · Tempo ${match.team_a_lineup.tempo}` : ''}</div>
+            ${renderRosterPanel(match.team_a_lineup, stats)}
+          </div>
+          <div>
+            <div class="roster-col-label">${teamB ? teamB.team_name : 'Unknown'}</div>
+            <div class="roster-col-tempo">${match.team_b_lineup ? `${match.team_b_lineup.formation} · Tempo ${match.team_b_lineup.tempo}` : ''}</div>
+            ${renderRosterPanel(match.team_b_lineup, stats)}
+          </div>
         </div>
       </div>
+
+      ${match.quarters ? `<div class="recap-section">
+        <div class="recap-section-title">Quarter by Quarter</div>
+        <table class="quarters-table">
+          <thead><tr><th></th><th>${teamA ? teamA.team_name : 'A'}</th><th>${teamB ? teamB.team_name : 'B'}</th></tr></thead>
+          <tbody>${quartersRows}</tbody>
+        </table>
+      </div>` : ''}
+
+      ${highlights.length ? `<div class="recap-section">
+        <div class="recap-section-title">Highlights (${highlights.length})</div>
+        <div class="highlights-list">${highlights.map(h => `<div class="highlight-line">${h.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</div>`).join('')}</div>
+      </div>` : ''}
     </div>
-
-    ${match.quarters ? `<div class="recap-section">
-      <div class="recap-section-title">Quarter by Quarter</div>
-      <table class="quarters-table">
-        <thead><tr><th></th><th>${teamA ? teamA.team_name : 'A'}</th><th>${teamB ? teamB.team_name : 'B'}</th></tr></thead>
-        <tbody>${quartersRows}</tbody>
-      </table>
-    </div>` : ''}
-
-    ${highlights.length ? `<div class="recap-section">
-      <div class="recap-section-title">Highlights (${highlights.length})</div>
-      <div class="highlights-list">${highlights.map(h => `<div class="highlight-line">${h.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')}</div>`).join('')}</div>
-    </div>` : ''}
   </div>`;
 }
 
@@ -469,6 +485,16 @@ function renderWeek(week){
     tab.classList.toggle('active', Number(tab.dataset.week) === week);
   });
 }
+
+window.toggleRecap = function(matchId){
+  const body = document.getElementById(`recap-body-${matchId}`);
+  const arrow = document.getElementById(`toggle-arrow-${matchId}`);
+  const text = document.getElementById(`toggle-text-${matchId}`);
+  const isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+  text.textContent = isOpen ? 'Show Full Recap' : 'Hide Full Recap';
+};
 
 async function init(){
   try {
