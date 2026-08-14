@@ -402,6 +402,33 @@ async function init(){
     const needsStats = teamsRows.some(t => !t.is_cpu && lineupByTeam[t.id]);
     const stats = needsStats ? await loadZappyStats() : {};
 
+    // Season-allocated stats override the permanent ones above, when a
+    // season is active -- Scout previews the ACTUAL upcoming match, so
+    // it needs to show whatever stats will really be used in
+    // resolution, not stale permanent trait-derived values. Only
+    // queried for the specific asset_ids actually appearing in this
+    // week's lineups, not the whole ~1,678-row table.
+    if (needsStats && (season.status === 'active' || season.status === 'playoffs')){
+      const allAssetIds = new Set();
+      for (const lineup of Object.values(lineupByTeam)){
+        for (const entries of Object.values(lineup.assignments || {})){
+          for (const e of entries) allAssetIds.add(e.asset_id);
+        }
+      }
+      if (allAssetIds.size){
+        try {
+          const idList = [...allAssetIds].join(',');
+          const seasonRows = await supabaseGet(`voltball_season_zappy_stats?season_id=eq.${season.id}&asset_id=in.(${idList})&select=asset_id,VLT,INS,SPK`);
+          for (const r of seasonRows ?? []){
+            const key = String(r.asset_id);
+            if (stats[key]) stats[key] = { ...stats[key], VLT: r.VLT, INS: r.INS, SPK: r.SPK };
+          }
+        } catch (err) {
+          console.error("Couldn't load season stats (non-fatal, falling back to permanent stats):", err);
+        }
+      }
+    }
+
     const teamsSorted = [...teamsRows].sort((a, b) => a.team_name.localeCompare(b.team_name));
 
     const wrap = document.getElementById('teams-wrap');
