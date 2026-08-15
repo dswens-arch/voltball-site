@@ -194,6 +194,128 @@
     .rosters-grid{ grid-template-columns:1fr; }
     .lanes-scout{ grid-template-columns:1fr; }
   }
+
+  /* ── Live playback ───────────────────────────
+     Streams a single already-resolved match's events with pacing, so a
+     "watch live" Discord link feels like a broadcast rather than a
+     finished document. Reuses the site's real palette/fonts throughout —
+     no invented colors. */
+  #live-wrap{ display:none; margin-top:28px; }
+  .live-eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:0.14em;
+    color:var(--striker); text-transform:uppercase; display:flex; align-items:center; gap:8px;
+    margin-bottom:14px;
+  }
+  .live-eyebrow .ldot{
+    width:7px; height:7px; border-radius:50%; background:var(--striker);
+    box-shadow:0 0 8px var(--striker); animation:live-pulse 1.4s infinite ease-in-out;
+  }
+  .live-eyebrow.done .ldot{ background:var(--text-dim); box-shadow:none; animation:none; }
+  @keyframes live-pulse{ 0%,100%{opacity:1;} 50%{opacity:.25;} }
+
+  .live-board{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:22px 20px 16px; margin-bottom:16px;
+  }
+  .live-teams{ display:flex; align-items:center; justify-content:space-between; gap:16px; }
+  .live-team{ flex:1; display:flex; align-items:center; gap:10px; }
+  .live-team.reverse{ flex-direction:row-reverse; text-align:right; }
+  .live-team img{ width:40px; height:40px; border-radius:9px; object-fit:cover; border:1px solid var(--line); }
+  .live-team-name{ font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:14px; }
+  .live-team-tempo{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-dim); margin-top:2px; }
+  .live-score{
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:38px; color:var(--text-dim);
+    text-align:center; min-width:70px; transition:transform .15s ease;
+  }
+  .live-score.bump{ transform:scale(1.1); color:var(--striker); }
+  .live-vs{ font-size:11px; color:var(--text-dim); text-align:center; font-family:'Chakra Petch',sans-serif; }
+
+  .live-momentum{ display:flex; gap:6px; margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
+  .live-q-chip{
+    flex:1; border-radius:8px; padding:8px 4px; text-align:center;
+    background:var(--panel-2); border:1px solid var(--line);
+    font-family:'IBM Plex Mono',monospace; opacity:.35; transition:opacity .4s ease, border-color .4s ease;
+  }
+  .live-q-chip.live{ opacity:1; border-color:var(--striker); }
+  .live-q-chip .lqlabel{ font-size:9px; color:var(--text-dim); letter-spacing:0.06em; }
+  .live-q-chip .lqscore{ font-size:13px; font-weight:700; margin-top:2px; }
+  .live-q-chip.lead-a .lqscore{ color:var(--guard); }
+  .live-q-chip.lead-b .lqscore{ color:var(--qb); }
+  .live-q-chip.lead-tie .lqscore{ color:var(--text); }
+
+  .live-feed{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:6px 0; margin-bottom:16px; min-height:200px;
+  }
+  .live-q-header{
+    font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:12px; letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--text-dim); padding:10px 18px 6px;
+  }
+  .live-event{
+    display:flex; gap:10px; align-items:flex-start; padding:8px 18px;
+    opacity:0; transform:translateY(6px); animation:live-slide-in .35s ease forwards;
+  }
+  @keyframes live-slide-in{ to{ opacity:1; transform:translateY(0);} }
+  .live-event .licon{ font-size:14px; line-height:1.4; }
+  .live-event .ltxt{ font-size:13px; line-height:1.5; color:var(--text); }
+  .live-event.turning{
+    background:linear-gradient(90deg, rgba(232,255,60,0.10), transparent);
+    border-left:2px solid var(--striker);
+  }
+  .live-event.turning .ltxt::after{
+    content:"TURNING POINT"; display:block; font-family:'IBM Plex Mono',monospace;
+    font-size:9px; letter-spacing:0.1em; color:var(--striker); margin-top:2px;
+  }
+  .live-score-pill{
+    display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:10px; font-weight:700;
+    letter-spacing:0.03em; padding:1px 6px; border-radius:5px; margin-left:6px; vertical-align:1px;
+    background:rgba(232,255,60,0.12); color:var(--striker); border:1px solid rgba(232,255,60,0.35);
+  }
+  .live-quarter-tally{
+    margin:2px 18px 10px; padding:8px 12px; border-radius:8px; background:var(--panel-2);
+    border:1px solid var(--line); font-family:'IBM Plex Mono',monospace; font-size:12px;
+    color:var(--text-dim); text-align:center;
+    opacity:0; animation:live-slide-in .35s ease forwards;
+  }
+  .live-quarter-tally b{ color:var(--text); }
+
+  .live-controls{ display:flex; gap:8px; justify-content:center; margin-bottom:24px; }
+  .live-btn{
+    font-family:'IBM Plex Mono',monospace; font-size:12px; background:var(--panel-2); color:var(--text);
+    border:1px solid var(--line); border-radius:8px; padding:8px 14px; cursor:pointer; transition:border-color .2s ease;
+  }
+  .live-btn:hover{ border-color:var(--striker); }
+
+  .live-endstate{ opacity:0; max-height:0; overflow:hidden; transition:opacity .5s ease; }
+  .live-endstate.show{ opacity:1; max-height:none; }
+  .live-recap{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:18px; margin-bottom:16px;
+  }
+  .live-recap h3{
+    font-family:'Chakra Petch',sans-serif; font-size:12px; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--striker); margin-bottom:8px;
+  }
+  .live-recap p{ font-size:13.5px; line-height:1.6; color:var(--text); }
+
+  .live-highlights-row{ display:flex; gap:12px; margin-bottom:14px; }
+  .live-highlight-card{
+    flex:1; background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:14px; display:flex; gap:12px; align-items:center;
+  }
+  .live-highlight-card img{ width:44px; height:44px; border-radius:9px; object-fit:cover; border:1px solid var(--line); flex-shrink:0; }
+  .live-highlight-icon{
+    width:44px; height:44px; border-radius:9px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+    font-size:20px; background:var(--panel-2); border:1px solid var(--line);
+  }
+  .live-highlight-body .lh-team{ font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:12px; }
+  .live-highlight-body .lh-desc{ font-size:11.5px; color:var(--text-dim); margin-top:3px; line-height:1.4; }
+
+  @media (max-width: 700px){
+    .live-teams{ flex-direction:column; gap:10px; }
+    .live-team.reverse{ flex-direction:row; text-align:left; }
+    .live-highlights-row{ flex-direction:column; }
+  }
 </style>
 </head>
 <body>
@@ -228,6 +350,58 @@
   <div id="results-wrap">
     <div class="week-tabs" id="week-tabs"></div>
     <div id="matches-container"></div>
+  </div>
+
+  <div id="live-wrap">
+    <div class="live-eyebrow" id="live-eyebrow"><span class="ldot"></span> LIVE</div>
+
+    <div class="live-board">
+      <div class="live-teams">
+        <div class="live-team" id="live-team-a">
+          <img id="live-team-a-img" src="" alt="">
+          <div>
+            <div class="live-team-name" id="live-team-a-name"></div>
+            <div class="live-team-tempo" id="live-team-a-tempo"></div>
+          </div>
+        </div>
+        <div>
+          <div class="live-score" id="live-score-a">0</div>
+        </div>
+        <div class="live-vs">VS</div>
+        <div>
+          <div class="live-score" id="live-score-b">0</div>
+        </div>
+        <div class="live-team reverse" id="live-team-b">
+          <img id="live-team-b-img" src="" alt="">
+          <div>
+            <div class="live-team-name" id="live-team-b-name"></div>
+            <div class="live-team-tempo" id="live-team-b-tempo"></div>
+          </div>
+        </div>
+      </div>
+      <div class="live-momentum" id="live-momentum">
+        <div class="live-q-chip" data-lq="1"><div class="lqlabel">Q1</div><div class="lqscore">—</div></div>
+        <div class="live-q-chip" data-lq="2"><div class="lqlabel">Q2</div><div class="lqscore">—</div></div>
+        <div class="live-q-chip" data-lq="3"><div class="lqlabel">Q3</div><div class="lqscore">—</div></div>
+        <div class="live-q-chip" data-lq="4"><div class="lqlabel">Q4</div><div class="lqscore">—</div></div>
+      </div>
+    </div>
+
+    <div class="live-feed" id="live-feed"></div>
+
+    <div class="live-controls">
+      <button class="live-btn" id="live-play-pause">⏸ Pause</button>
+      <button class="live-btn" id="live-speed">1x Speed</button>
+      <button class="live-btn" id="live-skip">Skip to End ▸▸</button>
+    </div>
+
+    <div class="live-endstate" id="live-endstate">
+      <div class="live-recap">
+        <h3>Recap</h3>
+        <p id="live-recap-text"></p>
+      </div>
+      <div class="live-highlights-row" id="live-highlights-row"></div>
+    </div>
   </div>
 </main>
 
@@ -496,6 +670,198 @@ window.toggleRecap = function(matchId){
   text.textContent = isOpen ? 'Show Full Recap' : 'Hide Full Recap';
 };
 
+function liveTeamImg(t){
+  return (t && t.hero_type && HERO_IMAGE[t.hero_type]) || avatarFor(t ? t.id : 'unknown');
+}
+
+function tempoLabelJs(v){
+  if (v <= 3.0) return 'Controlled';
+  if (v >= 8.0) return 'Aggressive';
+  return 'Standard';
+}
+
+function tempoText(lineup){
+  if (!lineup) return 'No lineup data';
+  return `${lineup.formation} · Tempo ${lineup.tempo} (${tempoLabelJs(lineup.tempo)})`;
+}
+
+function highlightCardHtml(teamObj, highlight){
+  if (!highlight) return '';
+  const teamName = teamObj ? teamObj.team_name : 'Unknown';
+  if (highlight.type === 'coach'){
+    const img = (highlight.hero_type && HERO_IMAGE[highlight.hero_type]) || avatarFor(highlight.hero_type);
+    const desc = highlight.flavor === 'self'
+      ? `${highlight.label} added +${highlight.impact} Voltage.`
+      : `${highlight.label} drained ${highlight.impact} Voltage from the opponent.`;
+    return `<div class="live-highlight-card">
+      <img src="${img}" onerror="this.onerror=null; this.src='${avatarFor(highlight.hero_type)}';" alt="">
+      <div class="live-highlight-body">
+        <div class="lh-team">${teamName}</div>
+        <div class="lh-desc">${desc}</div>
+      </div>
+    </div>`;
+  }
+  const posColorVar = {Striker:'var(--striker)', Mid:'var(--mid)', Guard:'var(--guard)'}[highlight.position] || 'var(--text-dim)';
+  const posIcon = {Striker:'⚡', Mid:'🎭', Guard:'🛡️'}[highlight.position] || '•';
+  return `<div class="live-highlight-card">
+    <div class="live-highlight-icon" style="color:${posColorVar}; border-color:${posColorVar};">${posIcon}</div>
+    <div class="live-highlight-body">
+      <div class="lh-team">${teamName}</div>
+      <div class="lh-desc">${highlight.display_name}s carried the game (${POSITION_STAT[highlight.position]} ${highlight.pool_value} pool).</div>
+    </div>
+  </div>`;
+}
+
+function startLivePlayback(match){
+  document.getElementById('results-wrap').style.display = 'none';
+  document.getElementById('live-wrap').style.display = 'block';
+
+  const teamA = teamsById[match.team_a_id];
+  const teamB = teamsById[match.team_b_id];
+
+  const imgA = document.getElementById('live-team-a-img');
+  imgA.src = liveTeamImg(teamA);
+  imgA.onerror = function(){ this.onerror = null; this.src = avatarFor(match.team_a_id); };
+  document.getElementById('live-team-a-name').textContent = teamA ? teamA.team_name : 'Unknown';
+  document.getElementById('live-team-a-tempo').textContent = tempoText(match.team_a_lineup);
+
+  const imgB = document.getElementById('live-team-b-img');
+  imgB.src = liveTeamImg(teamB);
+  imgB.onerror = function(){ this.onerror = null; this.src = avatarFor(match.team_b_id); };
+  document.getElementById('live-team-b-name').textContent = teamB ? teamB.team_name : 'Unknown';
+  document.getElementById('live-team-b-tempo').textContent = tempoText(match.team_b_lineup);
+
+  const scoreAEl = document.getElementById('live-score-a');
+  const scoreBEl = document.getElementById('live-score-b');
+  const feedEl = document.getElementById('live-feed');
+  const eyebrowEl = document.getElementById('live-eyebrow');
+  const endstateEl = document.getElementById('live-endstate');
+
+  const events = match.events || [];
+  const quarterTotals = match.quarter_totals || [];
+  const recap = match.recap || null;
+  const turningPoint = recap ? recap.turning_point : null;
+
+  function isTurningEvent(e){
+    if (!turningPoint || turningPoint.source !== 'signature') return false;
+    return e.quarter === turningPoint.quarter && e.team === turningPoint.team &&
+           e.text === turningPoint.text && e.delta === turningPoint.delta;
+  }
+
+  // Playback queue: per quarter, a header + that quarter's events (in the
+  // order the engine produced them) + a score reveal read straight from
+  // quarter_totals — never recomputed client-side, so it can't drift from
+  // the authoritative number the engine already verified. Post-match
+  // events (injuries, a tie-breaker roll) trail at the end.
+  const queue = [];
+  for (let q = 1; q <= 4; q++){
+    queue.push({type:'qheader', q});
+    events.filter(e => e.quarter === q).forEach(e => queue.push({type:'event', ...e}));
+    const qt = quarterTotals.find(t => t.quarter === q);
+    queue.push({type:'qend', q, qt, turning: !!(turningPoint && turningPoint.source === 'quarter_swing' && turningPoint.quarter === q)});
+  }
+  const postEvents = events.filter(e => e.quarter === null || e.quarter === undefined);
+  if (postEvents.length){
+    queue.push({type:'qheader', q:null});
+    postEvents.forEach(e => queue.push({type:'event', ...e}));
+  }
+
+  let speedMult = 1;
+  let paused = false;
+  let idx = 0;
+
+  function bumpScore(el){
+    el.classList.add('bump');
+    setTimeout(() => el.classList.remove('bump'), 200);
+  }
+
+  function revealQuarterEnd(item){
+    if (!item.qt) return;
+    scoreAEl.textContent = item.qt.team_a_total;
+    scoreBEl.textContent = item.qt.team_b_total;
+    const chip = document.querySelector(`.live-q-chip[data-lq="${item.q}"]`);
+    if (chip){
+      chip.classList.remove('lead-a','lead-b','lead-tie');
+      const lead = item.qt.team_a_total === item.qt.team_b_total ? 'lead-tie' : (item.qt.team_a_total > item.qt.team_b_total ? 'lead-a' : 'lead-b');
+      chip.classList.add('live', lead);
+      chip.querySelector('.lqscore').textContent = `${item.qt.team_a_total}–${item.qt.team_b_total}`;
+    }
+  }
+
+  function step(){
+    if (paused || idx >= queue.length){
+      if (idx >= queue.length) finish();
+      return;
+    }
+    const item = queue[idx++];
+
+    if (item.type === 'qheader'){
+      const h = document.createElement('div');
+      h.className = 'live-q-header';
+      h.textContent = item.q ? `Quarter ${item.q}` : 'Final';
+      feedEl.appendChild(h);
+      setTimeout(step, 700 / speedMult);
+
+    } else if (item.type === 'qend'){
+      revealQuarterEnd(item);
+      bumpScore(scoreAEl); bumpScore(scoreBEl);
+      if (item.qt){
+        const tally = document.createElement('div');
+        tally.className = 'live-quarter-tally';
+        tally.innerHTML = `End of Q${item.q} — <b>${teamA ? teamA.team_name : 'A'} ${item.qt.team_a_total}</b> · <b>${teamB ? teamB.team_name : 'B'} ${item.qt.team_b_total}</b>` +
+          (item.turning ? ' <span style="color:var(--striker); font-weight:700;">· TURNING POINT</span>' : '');
+        feedEl.appendChild(tally);
+      }
+      feedEl.scrollTop = feedEl.scrollHeight;
+      setTimeout(step, 600 / speedMult);
+
+    } else {
+      const row = document.createElement('div');
+      row.className = 'live-event' + (isTurningEvent(item) ? ' turning' : '');
+      const pill = (item.delta !== null && item.delta !== undefined)
+        ? `<span class="live-score-pill">${item.delta >= 0 ? '+' : ''}${item.delta} Voltage</span>` : '';
+      row.innerHTML = `<span class="licon">${item.icon || '•'}</span><span class="ltxt">${item.text}${pill}</span>`;
+      feedEl.appendChild(row);
+      feedEl.scrollTop = feedEl.scrollHeight;
+      setTimeout(step, item.kind === 'signature' ? 5200 / speedMult : 3800 / speedMult);
+    }
+  }
+
+  function finish(){
+    eyebrowEl.classList.add('done');
+    eyebrowEl.innerHTML = '<span class="ldot"></span> FINAL';
+    if (recap){
+      document.getElementById('live-recap-text').textContent = recap.recap_text;
+      document.getElementById('live-highlights-row').innerHTML =
+        highlightCardHtml(teamA, recap.highlight_a) + highlightCardHtml(teamB, recap.highlight_b);
+    } else {
+      document.getElementById('live-recap-text').textContent =
+        `Final: ${teamA ? teamA.team_name : 'Team A'} ${match.team_a_score} — ${match.team_b_score} ${teamB ? teamB.team_name : 'Team B'}.`;
+    }
+    endstateEl.classList.add('show');
+  }
+
+  document.getElementById('live-play-pause').onclick = (e) => {
+    paused = !paused;
+    e.target.textContent = paused ? '▶ Resume' : '⏸ Pause';
+    if (!paused) step();
+  };
+  document.getElementById('live-speed').onclick = (e) => {
+    speedMult = speedMult === 1 ? 2 : (speedMult === 2 ? 4 : 1);
+    e.target.textContent = speedMult + 'x Speed';
+  };
+  document.getElementById('live-skip').onclick = () => {
+    paused = false;
+    while (idx < queue.length){
+      const item = queue[idx++];
+      if (item.type === 'qend') revealQuarterEnd(item);
+    }
+    finish();
+  };
+
+  setTimeout(step, 500);
+}
+
 async function init(){
   try {
     const seasons = await supabaseGet(
@@ -524,6 +890,31 @@ async function init(){
     teamsById = {};
     for (const t of teams) teamsById[t.id] = t;
     allMatches = matches;
+
+    // ── Live playback mode ── ?live=<match_id> in the URL (this is what
+    // the Discord "kickoff" post links to) skips the normal week-browsing
+    // view entirely and streams that one match instead.
+    const liveMatchId = new URLSearchParams(location.search).get('live');
+    if (liveMatchId){
+      let match = matches.find(m => String(m.id) === String(liveMatchId));
+      if (!match){
+        const rows = await supabaseGet(`voltball_matches?id=eq.${liveMatchId}&select=*`);
+        match = rows[0];
+        if (match){
+          const missingIds = [match.team_a_id, match.team_b_id].filter(id => !teamsById[id]);
+          if (missingIds.length){
+            const extraTeams = await supabaseGet(`voltball_teams_public?id=in.(${missingIds.join(',')})&select=*`);
+            for (const t of extraTeams) teamsById[t.id] = t;
+          }
+        }
+      }
+      if (match){
+        document.getElementById('page-sub').textContent = `${season.name || 'Voltball'} · Live Match`;
+        startLivePlayback(match);
+        return;
+      }
+      console.warn('Live match not found, falling back to normal results view:', liveMatchId);
+    }
 
     if (!matches.length){
       document.getElementById('empty-state').style.display = 'block';
