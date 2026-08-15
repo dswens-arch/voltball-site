@@ -131,13 +131,23 @@
   }
 
   .recap-toggle{
-    width:100%; display:flex; align-items:center; justify-content:center; gap:8px;
+    flex:1; display:flex; align-items:center; justify-content:center; gap:8px;
     background:none; border:none; border-top:1px solid var(--line); cursor:pointer;
     padding:12px; font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:12px;
     color:var(--text-dim); transition: all .15s ease; letter-spacing:0.02em;
   }
   .recap-toggle:hover{ color:var(--striker); background:rgba(232,255,60,0.04); }
   .toggle-arrow{ display:inline-block; transition: transform .2s ease; font-size:10px; }
+
+  .recap-actions{ display:flex; border-top:1px solid var(--line); }
+  .recap-actions .recap-toggle{ border-top:none; }
+  .watch-replay-btn{
+    flex:1; display:flex; align-items:center; justify-content:center; gap:8px;
+    background:none; border:none; border-right:1px solid var(--line); cursor:pointer;
+    padding:12px; font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:12px;
+    color:var(--striker); transition: all .15s ease; letter-spacing:0.02em; text-decoration:none;
+  }
+  .watch-replay-btn:hover{ background:rgba(232,255,60,0.06); }
 
   .rosters-grid{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
   .roster-col-label{ font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:12px; margin-bottom:4px; }
@@ -345,6 +355,12 @@
   <div id="empty-state">
     <h2 class="display">No results yet</h2>
     <p>Nothing's resolved yet this season — check back once the first week plays out.</p>
+  </div>
+
+  <div id="no-live-state" style="display:none; text-align:center; padding:60px 20px;">
+    <h2 class="display">No live match right now</h2>
+    <p style="color:var(--text-dim); margin-top:8px;">Check back closer to kickoff, or browse past results below.</p>
+    <a href="results.html" class="watch-replay-btn" style="display:inline-flex; margin-top:18px; border:1px solid var(--line); border-radius:10px;">Browse Results</a>
   </div>
 
   <div id="results-wrap">
@@ -605,10 +621,13 @@ function renderMatchRecap(match, stats){
       </div>
     </div>
 
-    <button class="recap-toggle" onclick="window.toggleRecap('${match.id}')">
-      <span id="toggle-text-${match.id}">Show Full Recap</span>
-      <span id="toggle-arrow-${match.id}" class="toggle-arrow">▾</span>
-    </button>
+    <div class="recap-actions">
+      ${(match.events && match.events.length) ? `<a class="watch-replay-btn" href="results.html?live=${match.id}">▶ Watch Replay</a>` : ''}
+      <button class="recap-toggle" onclick="window.toggleRecap('${match.id}')">
+        <span id="toggle-text-${match.id}">Show Full Recap</span>
+        <span id="toggle-arrow-${match.id}" class="toggle-arrow">▾</span>
+      </button>
+    </div>
 
     <div class="recap-body" id="recap-body-${match.id}" style="display:none;">
       <div class="recap-section">
@@ -788,19 +807,18 @@ function startLivePlayback(match){
     }
   }
 
-  function step(){
-    if (paused || idx >= queue.length){
-      if (idx >= queue.length) finish();
-      return;
-    }
-    const item = queue[idx++];
+  function delayFor(item){
+    if (item.type === 'qheader') return 700;
+    if (item.type === 'qend') return 600;
+    return item.kind === 'signature' ? 5200 : 3800;
+  }
 
+  function applyItem(item){
     if (item.type === 'qheader'){
       const h = document.createElement('div');
       h.className = 'live-q-header';
       h.textContent = item.q ? `Quarter ${item.q}` : 'Final';
       feedEl.appendChild(h);
-      setTimeout(step, 700 / speedMult);
 
     } else if (item.type === 'qend'){
       revealQuarterEnd(item);
@@ -812,8 +830,6 @@ function startLivePlayback(match){
           (item.turning ? ' <span style="color:var(--striker); font-weight:700;">· TURNING POINT</span>' : '');
         feedEl.appendChild(tally);
       }
-      feedEl.scrollTop = feedEl.scrollHeight;
-      setTimeout(step, 600 / speedMult);
 
     } else {
       const row = document.createElement('div');
@@ -822,8 +838,35 @@ function startLivePlayback(match){
         ? `<span class="live-score-pill">${item.delta >= 0 ? '+' : ''}${item.delta} Voltage</span>` : '';
       row.innerHTML = `<span class="licon">${item.icon || '•'}</span><span class="ltxt">${item.text}${pill}</span>`;
       feedEl.appendChild(row);
-      feedEl.scrollTop = feedEl.scrollHeight;
-      setTimeout(step, item.kind === 'signature' ? 5200 / speedMult : 3800 / speedMult);
+    }
+    feedEl.scrollTop = feedEl.scrollHeight;
+  }
+
+  function step(){
+    if (paused || idx >= queue.length){
+      if (idx >= queue.length) finish();
+      return;
+    }
+    const item = queue[idx++];
+    applyItem(item);
+    setTimeout(step, delayFor(item) / speedMult);
+  }
+
+  // Instantly applies every item that would already have aired by
+  // `elapsedMs` into the broadcast, with no animation delay -- used when
+  // someone opens the live link after kickoff already happened, so they
+  // land at the correct point instead of watching a private replay from
+  // zero. Playback then resumes at normal pace via step() for whatever's
+  // left.
+  function fastForward(elapsedMs){
+    let acc = 0;
+    while (idx < queue.length){
+      const item = queue[idx];
+      const d = delayFor(item);
+      if (acc + d > elapsedMs) break;
+      applyItem(item);
+      acc += d;
+      idx++;
     }
   }
 
@@ -859,7 +902,40 @@ function startLivePlayback(match){
     finish();
   };
 
-  setTimeout(step, 500);
+  // ── Kickoff sync ──
+  // playback_starts_at is the same timestamp the Discord "kicks off in 5
+  // minutes" post promises. Three cases: still waiting (show a real
+  // countdown, then start at zero), joined after kickoff but still
+  // within a reasonable live window (catch up instantly, then continue
+  // live), or an old match opened via "Watch Replay" (just play it back
+  // from the start -- honoring a days-old timestamp would only ever
+  // show "already over, skip to end").
+  const LIVE_SYNC_WINDOW_MS = 30 * 60 * 1000;
+  const startsAtMs = match.playback_starts_at ? new Date(match.playback_starts_at).getTime() : null;
+  const nowMs = Date.now();
+
+  if (startsAtMs && nowMs < startsAtMs){
+    eyebrowEl.innerHTML = '<span class="ldot"></span> KICKOFF SOON';
+    const tick = () => {
+      const remain = startsAtMs - Date.now();
+      if (remain <= 0){
+        clearInterval(countdownTimer);
+        eyebrowEl.innerHTML = '<span class="ldot"></span> LIVE';
+        setTimeout(step, 300);
+        return;
+      }
+      const mm = Math.floor(remain / 60000);
+      const ss = Math.floor((remain % 60000) / 1000).toString().padStart(2, '0');
+      eyebrowEl.innerHTML = `<span class="ldot"></span> KICKOFF IN ${mm}:${ss}`;
+    };
+    const countdownTimer = setInterval(tick, 1000);
+    tick();
+  } else if (startsAtMs && (nowMs - startsAtMs) < LIVE_SYNC_WINDOW_MS){
+    fastForward(nowMs - startsAtMs);
+    setTimeout(step, 300);
+  } else {
+    setTimeout(step, 500);
+  }
 }
 
 async function init(){
@@ -891,15 +967,22 @@ async function init(){
     for (const t of teams) teamsById[t.id] = t;
     allMatches = matches;
 
-    // ── Live playback mode ── ?live=<match_id> in the URL (this is what
-    // the Discord "kickoff" post links to) skips the normal week-browsing
-    // view entirely and streams that one match instead.
+    // ── Live playback mode ── ?live=<match_id> or ?live=current in the URL
+    // (this is what the Discord "kickoff" post links to) skips the normal
+    // week-browsing view entirely and streams that one match instead.
+    // "current" is a reusable link -- resolves to whichever resolved match
+    // hasn't had its recap posted yet, soonest playback_starts_at first.
+    // Assumes one game airs at a time; see the comment on the kickoff post
+    // in voltball_cog.py for what happens if that's ever not true.
     const liveMatchId = new URLSearchParams(location.search).get('live');
     if (liveMatchId){
-      let match = matches.find(m => String(m.id) === String(liveMatchId));
-      if (!match){
-        const rows = await supabaseGet(`voltball_matches?id=eq.${liveMatchId}&select=*`);
-        match = rows[0];
+      let match = null;
+
+      if (liveMatchId === 'current'){
+        const rows = await supabaseGet(
+          `voltball_matches?season_id=eq.${season.id}&recap_posted_at=is.null&playback_starts_at=not.is.null&order=playback_starts_at.asc&limit=1&select=*`
+        );
+        match = rows[0] || null;
         if (match){
           const missingIds = [match.team_a_id, match.team_b_id].filter(id => !teamsById[id]);
           if (missingIds.length){
@@ -907,7 +990,27 @@ async function init(){
             for (const t of extraTeams) teamsById[t.id] = t;
           }
         }
+        if (!match){
+          document.getElementById('page-sub').textContent = `${season.name || 'Voltball'} · Live Match`;
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('no-live-state').style.display = 'block';
+          return;
+        }
+      } else {
+        match = matches.find(m => String(m.id) === String(liveMatchId));
+        if (!match){
+          const rows = await supabaseGet(`voltball_matches?id=eq.${liveMatchId}&select=*`);
+          match = rows[0];
+          if (match){
+            const missingIds = [match.team_a_id, match.team_b_id].filter(id => !teamsById[id]);
+            if (missingIds.length){
+              const extraTeams = await supabaseGet(`voltball_teams_public?id=in.(${missingIds.join(',')})&select=*`);
+              for (const t of extraTeams) teamsById[t.id] = t;
+            }
+          }
+        }
       }
+
       if (match){
         document.getElementById('page-sub').textContent = `${season.name || 'Voltball'} · Live Match`;
         startLivePlayback(match);
