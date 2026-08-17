@@ -228,10 +228,23 @@
   .zcard .zthumb{ width:100%; aspect-ratio:1; object-fit:cover; display:block; background:var(--panel-2); margin-bottom:10px; }
   .zcard .zbody{ padding:0 12px 12px; }
   .zcard .zn{ font-size:13px; font-weight:600; margin-bottom:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .zstats{ display:flex; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:11px; }
-  .zstats .st{ display:flex; align-items:center; gap:3px; color:var(--text-dim); }
-  .zstats .st.hot{ color:var(--text); font-weight:600; }
-  .zstats .st.warm{ color:#B9BECF; font-weight:500; } /* secondary stat -- present but visually lighter than primary */
+  .zstats{ display:flex; gap:6px; font-family:'IBM Plex Mono',monospace; font-size:11px; flex-wrap:wrap; }
+  .zstats .st{ display:flex; align-items:center; gap:3px; color:var(--text-dim); padding:2px 0; }
+  /* Primary stat: filled pill in the active lane's own accent color —
+     unmistakably "this is the stat that matters most here." */
+  .zstats .st.hot{
+    font-weight:700; padding:2px 7px; border-radius:5px;
+    background: var(--pos-color, var(--text)); color:#0A0B10;
+  }
+  /* Secondary stat: outlined pill, same accent color but NOT filled —
+     visually "also counts, but less." Deliberately not just a lighter
+     shade of gray (that read as identical to primary at a glance) —
+     needs its own shape, not just a dimmer version of the same shape. */
+  .zstats .st.warm{
+    font-weight:600; padding:1px 6px; border-radius:5px;
+    border: 1.5px solid var(--pos-color, var(--text-dim));
+    color: var(--pos-color, var(--text));
+  }
   /* Season band is now the quiet secondary signal — same small-pill
      treatment Position Fit used to have. Still real, still worth
      glancing at, just not the first thing your eye hits anymore. */
@@ -402,6 +415,7 @@ const FORMATIONS = {
   DEFENSE:  {QB:1, Striker:1, Mid:2, Guard:4},
 };
 const POSITION_STAT = {QB:"SPK", Striker:"VLT", Mid:"SPK", Guard:"INS"};
+const POSITION_COLOR = {QB:"var(--qb)", Striker:"var(--striker)", Mid:"var(--mid)", Guard:"var(--guard)"};
 // Secondary stat + real weights, matching voltball_engine.py /
 // voltball_position_fit.py exactly (mean-normalized against the real
 // 1678-Zappy collection -- see those files' history for why a flat
@@ -1148,7 +1162,7 @@ function renderRoster(){
     const tier = fitTier(pct);
     const bandClass = z.band ? `band-${z.band.toLowerCase().replace(/\s+/g, '-')}` : '';
     const fitClass = `fit-${tier.cls}`;
-    return `<div class="zcard ${isUsed?'used':''} ${isInjured?'injured':''} ${!isUsed && !isInjured ? fitClass : ''}" onclick="${isDisabled ? '' : `window.assign('${activeTab}', ${z.asset_id})`}">
+    return `<div class="zcard ${isUsed?'used':''} ${isInjured?'injured':''} ${!isUsed && !isInjured ? fitClass : ''}" style="--pos-color:${POSITION_COLOR[activeTab]};" onclick="${isDisabled ? '' : `window.assign('${activeTab}', ${z.asset_id})`}">
       ${imgWithFallback(z.image_url, z.asset_id, "zthumb", 'loading="lazy"')}
       <div class="zbody">
         <div class="zn">${z.name}</div>
