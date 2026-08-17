@@ -726,7 +726,7 @@ function highlightCardHtml(teamObj, highlight){
     <div class="live-highlight-icon" style="color:${posColorVar}; border-color:${posColorVar};">${posIcon}</div>
     <div class="live-highlight-body">
       <div class="lh-team">${teamName}</div>
-      <div class="lh-desc">${highlight.display_name}s carried the game (${POSITION_STAT[highlight.position]} ${highlight.pool_value} pool).</div>
+      <div class="lh-desc">${highlight.display_name}s ${highlight.net_events > 0 ? 'were the story of the match' : 'carried the load, for better or worse'}.</div>
     </div>
   </div>`;
 }
@@ -905,12 +905,17 @@ function startLivePlayback(match){
   // ── Kickoff sync ──
   // playback_starts_at is the same timestamp the Discord "kicks off in 5
   // minutes" post promises. Three cases: still waiting (show a real
-  // countdown, then start at zero), joined after kickoff but still
-  // within a reasonable live window (catch up instantly, then continue
-  // live), or an old match opened via "Watch Replay" (just play it back
-  // from the start -- honoring a days-old timestamp would only ever
-  // show "already over, skip to end").
-  const LIVE_SYNC_WINDOW_MS = 30 * 60 * 1000;
+  // countdown, then start at zero), joined WHILE the broadcast is still
+  // actually running (catch up instantly to the correct point, then
+  // continue live), or the broadcast has already finished airing -- an
+  // old match via "Watch Replay", or simply clicking the link a bit late
+  // (this match's whole broadcast is only ~a minute long, so "late" here
+  // can mean seconds, not hours). That last case just plays back from the
+  // start as a normal paced replay -- there's nothing left to "catch up"
+  // to once it's over, so catching up would just dump every event with
+  // zero animation and jump straight to the recap, which is exactly the
+  // "shows it all at once" bug this replaces.
+  const totalBroadcastMs = queue.reduce((sum, item) => sum + delayFor(item), 0);
   const startsAtMs = match.playback_starts_at ? new Date(match.playback_starts_at).getTime() : null;
   const nowMs = Date.now();
 
@@ -930,7 +935,7 @@ function startLivePlayback(match){
     };
     const countdownTimer = setInterval(tick, 1000);
     tick();
-  } else if (startsAtMs && (nowMs - startsAtMs) < LIVE_SYNC_WINDOW_MS){
+  } else if (startsAtMs && (nowMs - startsAtMs) < totalBroadcastMs){
     fastForward(nowMs - startsAtMs);
     setTimeout(step, 300);
   } else {
