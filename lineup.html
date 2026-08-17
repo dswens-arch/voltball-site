@@ -205,20 +205,24 @@
   .zcard:hover{ border-color:#3a3f5a; transform: translateY(-1px); }
   .zcard.used{ opacity:.3; cursor:not-allowed; }
   .zcard.used:hover{ transform:none; }
-  .zcard.band-legendary{ border-color:#F0B429; box-shadow: 0 0 0 1px #F0B429; }
-  .zcard.band-all-pro{ border-color:#FF6B4A; box-shadow: 0 0 0 1px #FF6B4A; }
-  .zcard.band-starter{ border-color:#4A9EFF; box-shadow: 0 0 0 1px #4A9EFF; }
-  .zcard.band-backup{ border-color:#5A6478; }
-  .zcard.band-practice-squad{ border-color:#3A3F52; }
-  .band-footer{
+  /* Card border/glow is now driven by POSITION FIT (does this stat
+     actually matter for the lane you're filling), not season band — band
+     is real but answers a different question ("how good overall"), and
+     having it be the loudest signal on a position-specific roster picker
+     was misleading: a Backup-band Zappy can have an elite stat for the
+     one position that's actually being filled here, and vice versa. */
+  .zcard.fit-elite{ border-color:var(--striker); box-shadow: 0 0 0 1px var(--striker); }
+  .zcard.fit-strong{ border-color:var(--mid); box-shadow: 0 0 0 1px var(--mid); }
+  .zcard.fit-solid{ border-color:var(--guard); box-shadow: 0 0 0 1px var(--guard); }
+  .zcard.fit-weak{ border-color:#5A6478; }
+  .fit-footer{
     text-align:center; padding:7px 0; font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:11px;
     letter-spacing:0.05em; text-transform:uppercase;
   }
-  .band-footer.band-legendary{ background:#F0B429; color:#2B1D00; }
-  .band-footer.band-all-pro{ background:#FF6B4A; color:#3A0F04; }
-  .band-footer.band-starter{ background:#4A9EFF; color:#00152B; }
-  .band-footer.band-backup{ background:#5A6478; color:#EDEFF4; }
-  .band-footer.band-practice-squad{ background:#2B2F3E; color:#9AA3B8; }
+  .fit-footer.fit-elite{ background:var(--striker); color:#1A2000; }
+  .fit-footer.fit-strong{ background:var(--mid); color:#F2EEFF; }
+  .fit-footer.fit-solid{ background:var(--guard); color:#00211C; }
+  .fit-footer.fit-weak{ background:#5A6478; color:#EDEFF4; }
   .zcard.injured{ opacity:.5; cursor:not-allowed; border-color:var(--alert); box-shadow: 0 0 0 1px var(--alert); }
   .zcard.injured:hover{ transform:none; }
   .zcard .zthumb{ width:100%; aspect-ratio:1; object-fit:cover; display:block; background:var(--panel-2); margin-bottom:10px; }
@@ -227,14 +231,19 @@
   .zstats{ display:flex; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:11px; }
   .zstats .st{ display:flex; align-items:center; gap:3px; color:var(--text-dim); }
   .zstats .st.hot{ color:var(--text); font-weight:600; }
-  .fit-badge{
+  /* Season band is now the quiet secondary signal — same small-pill
+     treatment Position Fit used to have. Still real, still worth
+     glancing at, just not the first thing your eye hits anymore. */
+  .band-pill{
     display:inline-block; margin-top:8px; font-size:10px; padding:2px 7px; border-radius:4px;
     font-family:'Chakra Petch',sans-serif; font-weight:600; letter-spacing:0.03em;
   }
-  .fit-badge.elite{ background:rgba(232,255,60,0.15); color:var(--striker); }
-  .fit-badge.strong{ background:rgba(123,92,255,0.15); color:#a595ff; }
-  .fit-badge.solid{ background:rgba(45,225,194,0.12); color:var(--guard); }
-  .fit-badge.injured-badge{ background:rgba(255,61,110,0.12); color:var(--alert); }
+  .band-pill.band-legendary{ background:rgba(240,180,41,0.15); color:#F0B429; }
+  .band-pill.band-all-pro{ background:rgba(255,107,74,0.15); color:#FF6B4A; }
+  .band-pill.band-starter{ background:rgba(74,158,255,0.15); color:#4A9EFF; }
+  .band-pill.band-backup{ background:rgba(90,100,120,0.18); color:#9AA3B8; }
+  .band-pill.band-practice-squad{ background:rgba(43,47,62,0.5); color:#7D8494; }
+  .fit-badge.injured-badge{ background:rgba(255,61,110,0.12); color:var(--alert); display:inline-block; margin-top:8px; font-size:10px; padding:2px 7px; border-radius:4px; font-family:'Chakra Petch',sans-serif; font-weight:600; letter-spacing:0.03em; }
 
   .hero-pick-card{
     background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 10px;
@@ -992,7 +1001,7 @@ function fitTier(pct){
   if (pct >= 90) return {label:"Elite", cls:"elite"};
   if (pct >= 70) return {label:"Strong", cls:"strong"};
   if (pct >= 40) return {label:"Solid", cls:"solid"};
-  return null;
+  return {label:"Weak", cls:"weak"};
 }
 // Percentile ranks are computed against the FULL 1678-Zappy collection
 // (ZAPPY_STATS), matching Discord's /voltball_scout, /voltball_zappy_lookup,
@@ -1113,7 +1122,8 @@ function renderRoster(){
     const pct = percentileWithin(stat, z[stat]);
     const tier = fitTier(pct);
     const bandClass = z.band ? `band-${z.band.toLowerCase().replace(/\s+/g, '-')}` : '';
-    return `<div class="zcard ${isUsed?'used':''} ${isInjured?'injured':''} ${!isUsed && !isInjured ? bandClass : ''}" onclick="${isDisabled ? '' : `window.assign('${activeTab}', ${z.asset_id})`}">
+    const fitClass = `fit-${tier.cls}`;
+    return `<div class="zcard ${isUsed?'used':''} ${isInjured?'injured':''} ${!isUsed && !isInjured ? fitClass : ''}" onclick="${isDisabled ? '' : `window.assign('${activeTab}', ${z.asset_id})`}">
       ${imgWithFallback(z.image_url, z.asset_id, "zthumb", 'loading="lazy"')}
       <div class="zbody">
         <div class="zn">${z.name}</div>
@@ -1122,9 +1132,9 @@ function renderRoster(){
           <span class="st ${stat==='INS'?'hot':''}">INS ${z.INS}</span>
           <span class="st ${stat==='SPK'?'hot':''}">SPK ${z.SPK}</span>
         </div>
-        ${isInjured ? `<div class="fit-badge injured-badge">🤕 Injured this week</div>` : (tier ? `<div class="fit-badge ${tier.cls}">${tier.label} ${DISPLAY_NAME[activeTab]}</div>` : '')}
+        ${isInjured ? `<div class="fit-badge injured-badge">🤕 Injured this week</div>` : (z.band ? `<div class="band-pill ${bandClass}">${z.band}</div>` : '')}
       </div>
-      ${z.band ? `<div class="band-footer ${bandClass}">${z.band}</div>` : ''}
+      <div class="fit-footer ${fitClass}">${tier.label} ${DISPLAY_NAME[activeTab]}</div>
     </div>`;
   }).join('');
 }
