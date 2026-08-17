@@ -303,15 +303,15 @@ function percentileComposite(position, value){
   return Math.round(lo / sorted.length * 100);
 }
 
-// ── Load listings from Downbad's public endpoint. No API key -- this is
-// the unauthenticated /public/ tier, confirmed with Downbad's dev as fine
-// for direct client-side use. Small payload (~85 active listings, not
-// the full 1678-Zappy collection), fetched once per page load. ──
+// ── Load listings from the bot's Supabase cache, NOT Downbad directly.
+// Downbad now requires an API key on every request and blocks
+// unauthenticated traffic -- per their own integration rules, that key
+// can never reach a browser. The actual authenticated fetch happens
+// server-side on a schedule (see market_sync.py, running on the Discord
+// bot); this just reads whatever it last synced. ──
 async function loadListings(){
-  const res = await fetch('https://market-api.downbad.farm/public/v1/collection/zappies-reborn/listings');
-  if (!res.ok) throw new Error(`Downbad listings -> ${res.status}`);
-  const data = await res.json();
-  return data.listings ?? [];
+  const rows = await supabaseGet('voltball_market_listings?select=*');
+  return (rows ?? []).map(r => ({ asset_id: r.asset_id, price: r.price, unit: r.unit }));
 }
 
 function renderAgents(){
