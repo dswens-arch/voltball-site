@@ -341,7 +341,7 @@ function renderAgents(){
         ${z.band ? `<div class="band-pill ${bandClass}">${z.band}</div>` : ''}
         <div class="price-row">
           <div class="price-tag">${z.price}<span class="unit">${z.unit}</span></div>
-          <a class="buy-link" href="https://www.downbad.farm/tokens/${z.asset_id}" target="_blank" rel="noopener noreferrer">Buy ↗</a>
+          <a class="buy-link" href="https://www.downbad.farm/asset/${z.asset_id}" target="_blank" rel="noopener noreferrer">Buy ↗</a>
         </div>
       </div>
       <div class="fit-footer fit-${tier.cls}">${tier.label} ${DISPLAY_NAME[activeTab]}</div>
