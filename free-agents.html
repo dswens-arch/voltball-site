@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voltball — Free Agents</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg: #0B0D14;
+    --panel: #151827;
+    --panel-2: #1B1F32;
+    --line: #262B40;
+    --text: #E7E9F2;
+    --text-dim: #8A8FA8;
+    --striker: #E8FF3C;
+    --mid: #7B5CFF;
+    --guard: #2DE1C2;
+    --qb: #FF9F40;
+    --alert: #FF3D6E;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background: radial-gradient(ellipse 1200px 600px at 50% -10%, #1a1030 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height:100vh;
+    padding-bottom: 100px;
+  }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  .display{ font-family:'Chakra Petch', sans-serif; font-weight:700; letter-spacing:0.01em; }
+
+  nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 20px 32px; border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:rgba(11,13,20,0.85); backdrop-filter: blur(10px);
+    z-index:50;
+  }
+  .wordmark{ display:flex; align-items:center; gap:10px; font-size:20px; color:inherit; cursor:pointer; text-decoration:none; }
+  .wordmark .bolt{ color:var(--striker); font-size:22px; filter: drop-shadow(0 0 8px rgba(232,255,60,0.6)); }
+  .nav-links{ display:flex; align-items:center; gap:22px; margin-right:20px; }
+  .nav-link{
+    font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:13px; letter-spacing:0.03em;
+    color:var(--text-dim); text-decoration:none; padding:6px 2px; border-bottom:2px solid transparent; transition: all .15s ease;
+  }
+  .nav-link:hover{ color:var(--text); }
+  .nav-link.active{ color:var(--striker); border-color:var(--striker); }
+  .nav-right{ display:flex; align-items:center; }
+  .wallet-btn{
+    font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:13px; letter-spacing:0.02em;
+    background:var(--striker); color:#1A2000; border:none; border-radius:8px; padding:10px 18px;
+    cursor:pointer; transition: opacity .15s ease;
+  }
+  .wallet-btn:hover{ opacity:.85; }
+  .wallet-btn.connected{ background:var(--panel-2); color:var(--text); border:1px solid var(--line); font-family:'IBM Plex Mono',monospace; font-size:12px; }
+
+  main{ max-width:1240px; margin:0 auto; padding:32px 24px; }
+  .page-head h1{ font-size:28px; }
+  .page-head p{ color:var(--text-dim); margin-top:6px; font-size:14px; }
+
+  .lane-tabs{ display:flex; gap:8px; margin:24px 0 6px; flex-wrap:wrap; }
+  .lane-tab{
+    font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:13px; letter-spacing:0.02em;
+    padding:8px 16px; border-radius:8px; border:1px solid var(--line); background:var(--panel);
+    color:var(--text-dim); cursor:pointer; transition: all .15s ease;
+  }
+  .lane-tab:hover{ color:var(--text); }
+  .lane-tab.active[data-pos="QB"]{ border-color:var(--qb); color:var(--qb); background:rgba(255,159,64,0.1); }
+  .lane-tab.active[data-pos="Striker"]{ border-color:var(--striker); color:var(--striker); background:rgba(232,255,60,0.08); }
+  .lane-tab.active[data-pos="Mid"]{ border-color:var(--mid); color:var(--mid); background:rgba(123,92,255,0.1); }
+  .lane-tab.active[data-pos="Guard"]{ border-color:var(--guard); color:var(--guard); background:rgba(45,225,194,0.08); }
+
+  #agents-hint{ font-size:13px; color:var(--text-dim); margin-bottom:16px; }
+
+  .roster-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(170px,1fr)); gap:12px; margin-bottom:24px; }
+  .zcard{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:0;
+    overflow:hidden; transition: all .15s ease; display:flex; flex-direction:column;
+  }
+  .zcard:hover{ border-color:#3a3f5a; transform: translateY(-1px); }
+  .zcard.fit-elite{ border-color:var(--striker); box-shadow: 0 0 0 1px var(--striker); }
+  .zcard.fit-strong{ border-color:var(--mid); box-shadow: 0 0 0 1px var(--mid); }
+  .zcard.fit-solid{ border-color:var(--guard); box-shadow: 0 0 0 1px var(--guard); }
+  .zcard.fit-weak{ border-color:#5A6478; }
+  .fit-footer{
+    text-align:center; padding:7px 0; font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:11px;
+    letter-spacing:0.05em; text-transform:uppercase;
+  }
+  .fit-footer.fit-elite{ background:var(--striker); color:#1A2000; }
+  .fit-footer.fit-strong{ background:var(--mid); color:#F2EEFF; }
+  .fit-footer.fit-solid{ background:var(--guard); color:#00211C; }
+  .fit-footer.fit-weak{ background:#5A6478; color:#EDEFF4; }
+  .zcard .zthumb{ width:100%; aspect-ratio:1; object-fit:cover; display:block; background:var(--panel-2); }
+  .zcard .zbody{ padding:10px 12px; flex:1; }
+  .zcard .zn{ font-size:13px; font-weight:600; margin-bottom:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .zstats{ display:flex; gap:4px; font-family:'IBM Plex Mono',monospace; font-size:10px; flex-wrap:nowrap; margin-bottom:8px; }
+  .zstats .st{ display:flex; align-items:center; gap:2px; color:var(--text-dim); padding:2px 0; white-space:nowrap; }
+  .zstats .st.hot{
+    font-weight:700; padding:2px 6px; border-radius:5px;
+    background: var(--pos-color, var(--text)); color:#0A0B10;
+  }
+  .zstats .st.warm{
+    font-weight:600; padding:1px 5px; border-radius:5px;
+    border: 1.5px solid var(--pos-color, var(--text-dim));
+    color: var(--pos-color, var(--text));
+  }
+  .band-pill{
+    display:inline-block; font-size:10px; padding:2px 7px; border-radius:4px;
+    font-family:'Chakra Petch',sans-serif; font-weight:600; letter-spacing:0.03em;
+  }
+  .band-pill.band-legendary{ background:rgba(240,180,41,0.15); color:#F0B429; }
+  .band-pill.band-all-pro{ background:rgba(255,107,74,0.15); color:#FF6B4A; }
+  .band-pill.band-starter{ background:rgba(74,158,255,0.15); color:#4A9EFF; }
+  .band-pill.band-backup{ background:rgba(90,100,120,0.18); color:#9AA3B8; }
+  .band-pill.band-practice-squad{ background:rgba(43,47,62,0.5); color:#7D8494; }
+
+  /* Price + buy link — the two things this page adds on top of the
+     roster-picker card design it otherwise reuses verbatim. */
+  .price-row{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-top:8px; padding-top:8px; border-top:1px solid var(--line);
+  }
+  .price-tag{ font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:13px; color:var(--text); }
+  .price-tag .unit{ font-size:10px; color:var(--text-dim); font-weight:500; margin-left:2px; }
+  .buy-link{
+    font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:11px; letter-spacing:0.03em;
+    color:#0A0B10; background:var(--striker); padding:5px 10px; border-radius:6px;
+    text-decoration:none; transition: opacity .15s ease; white-space:nowrap;
+  }
+  .buy-link:hover{ opacity:.85; }
+
+  #loading, #empty-state{ text-align:center; padding:80px 20px; color:var(--text-dim); }
+  #error-state{ text-align:center; padding:40px 20px; color:var(--alert); display:none; }
+
+  @media (max-width: 700px){
+    nav{ padding: 14px 16px; }
+    .wordmark{ font-size:16px; gap:7px; }
+    .wordmark .bolt{ font-size:17px; }
+    .nav-right{ flex-direction:column; align-items:flex-end; gap:8px; }
+    .nav-links{ gap:16px; margin-right:0; }
+    .nav-link{ font-size:11px; }
+    .wallet-btn{ font-size:12px; padding:8px 14px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="wordmark" href="./index.html"><span class="bolt">⚡</span><span class="display">VOLTBALL</span></a>
+  <div class="nav-right">
+    <div class="nav-links">
+      <a class="nav-link" href="./lineup.html">Lineup</a>
+      <a class="nav-link" href="./scout.html">Scout</a>
+      <a class="nav-link active" href="./free-agents.html">Free Agents</a>
+      <a class="nav-link" href="./standings.html">Standings</a>
+      <a class="nav-link" href="./bracket.html">Bracket</a>
+      <a class="nav-link" href="./results.html">Results</a>
+    </div>
+    <button class="wallet-btn" id="wallet-btn" onclick="connectWallet()">Connect Wallet</button>
+  </div>
+</nav>
+
+<main>
+  <div class="page-head">
+    <h1 class="display">Free Agents</h1>
+    <p>Zappies currently listed on the marketplace — sorted by fit for the position you're browsing. Prices update live from Downbad.</p>
+  </div>
+
+  <div id="loading">Loading listings…</div>
+  <div id="error-state"></div>
+  <div id="empty-state" style="display:none;">No active listings right now — check back later, or browse <a href="https://www.downbad.farm/collections" style="color:var(--striker);">Downbad directly</a>.</div>
+
+  <div id="agents-wrap" style="display:none;">
+    <div class="lane-tabs" id="lane-tabs">
+      <button class="lane-tab active" data-pos="QB" onclick="window.setTab('QB')">QB</button>
+      <button class="lane-tab" data-pos="Striker" onclick="window.setTab('Striker')">Surge Back</button>
+      <button class="lane-tab" data-pos="Mid" onclick="window.setTab('Mid')">Conductor</button>
+      <button class="lane-tab" data-pos="Guard" onclick="window.setTab('Guard')">Guard</button>
+    </div>
+    <div id="agents-hint"></div>
+    <div class="roster-grid" id="agents-grid"></div>
+  </div>
+</main>
+
+<script type="module">
+import { PeraWalletConnect } from "https://esm.sh/@perawallet/connect@1";
+
+const DISPLAY_NAME = {QB:"QB", Striker:"Surge Back", Mid:"Conductor", Guard:"Guard"};
+const POSITION_STAT = {QB:"SPK", Striker:"VLT", Mid:"SPK", Guard:"INS"};
+const SECONDARY_STAT = {Striker:"SPK", Mid:"INS", Guard:"VLT"};
+const POSITION_COLOR = {QB:"var(--qb)", Striker:"var(--striker)", Mid:"var(--mid)", Guard:"var(--guard)"};
+// Same mean-normalized weights as voltball_engine.py / voltball_position_fit.py
+// / lineup.html — see those files' history for why a flat 70/30 split would
+// have been wrong. Kept in sync by hand across all three; if the engine's
+// weights ever get retuned again, this needs the same update.
+const POSITION_WEIGHTS = {
+  Striker: {primary: 0.119,  secondary: 0.0326},
+  Mid:     {primary: 0.077,  secondary: 0.0368},
+  Guard:   {primary: 0.070,  secondary: 0.0421},
+};
+function compositeValue(position, z){
+  if (position === "QB") return z.SPK;
+  const w = POSITION_WEIGHTS[position];
+  return z[POSITION_STAT[position]] * w.primary + z[SECONDARY_STAT[position]] * w.secondary;
+}
+
+const TIER_THRESHOLDS = [[90,"Elite"],[70,"Strong"],[40,"Solid"],[0,"Weak"]];
+function fitTier(pct){
+  for (const [threshold, label] of TIER_THRESHOLDS){
+    if (pct >= threshold) return {label, cls: label.toLowerCase()};
+  }
+  return {label:"Weak", cls:"weak"};
+}
+
+const peraWallet = new PeraWalletConnect();
+let accountAddress = null;
+let currentSeason = null;
+let zappyStats = null;
+let activeTab = "QB";
+let agents = []; // merged listing + stats data, built once on load
+
+const GUILD_ID = "1310425792349601985";
+const SUPABASE_URL = "https://texlxhkzsbvwvptjanhd.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRleGx4aGt6c2J2d3ZwdGphbmhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4NTU3MTYsImV4cCI6MjA4OTQzMTcxNn0.yihmxMxvdnV0zLaT8JVddT0zYd9MB3Ol9mj0Xnfl4KM";
+
+async function supabaseGet(path){
+  const url = `${SUPABASE_URL}/rest/v1/${path}`;
+  const res = await fetch(url, {
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      "Accept-Profile": "public",
+    },
+  });
+  if (!res.ok) throw new Error(`Supabase GET ${path} -> ${res.status}`);
+  return res.json();
+}
+
+async function fetchCurrentSeason(){
+  const rows = await supabaseGet(`voltball_seasons?guild_id=eq.${GUILD_ID}&status=in.(active,playoffs,upcoming)&order=status.asc&select=*`);
+  return rows?.[0] ?? null;
+}
+
+async function loadZappyStats(){
+  if (zappyStats) return zappyStats;
+  const res = await fetch('./zappy_stats.json');
+  zappyStats = await res.json();
+  return zappyStats;
+}
+
+async function loadSeasonStats(seasonId, assetIds){
+  if (!seasonId || !assetIds.length) return {};
+  try {
+    const idList = assetIds.join(',');
+    const rows = await supabaseGet(`voltball_season_zappy_stats?season_id=eq.${seasonId}&asset_id=in.(${idList})&select=asset_id,VLT,INS,SPK,band`);
+    const byId = {};
+    for (const r of rows ?? []) byId[r.asset_id] = r;
+    return byId;
+  } catch (err) {
+    console.error("Couldn't load season stats (non-fatal, falling back to permanent stats):", err);
+    return {};
+  }
+}
+
+function avatarFor(seed, size=200){
+  return `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(seed)}&size=${size}`;
+}
+function imgWithFallback(realUrl, assetId, cls, extra=""){
+  const fallback = avatarFor(assetId);
+  const src = realUrl || fallback;
+  return `<img class="${cls}" src="${src}" ${extra} onerror="this.onerror=null; this.src='${fallback}';">`;
+}
+
+// ── Percentile ranking against the full collection's composite
+// distribution -- matches voltball_position_fit.py exactly. Ranked
+// against PERMANENT stats even though a listing's DISPLAYED stats may be
+// season-allocated: season-allocated values are themselves borrowed
+// wholesale from real peers in the same permanent collection (see
+// voltball_season_stats.py), so ranking them against that same
+// distribution stays statistically coherent -- not a mismatch. ──
+let _collectionSortedComposite = null;
+function collectionSortedComposite(){
+  if (_collectionSortedComposite) return _collectionSortedComposite;
+  const out = {Striker: [], Mid: [], Guard: [], QB: []};
+  for (const z of Object.values(zappyStats)){
+    out.Striker.push(compositeValue("Striker", z));
+    out.Mid.push(compositeValue("Mid", z));
+    out.Guard.push(compositeValue("Guard", z));
+    out.QB.push(compositeValue("QB", z));
+  }
+  out.Striker.sort((a,b)=>a-b); out.Mid.sort((a,b)=>a-b); out.Guard.sort((a,b)=>a-b); out.QB.sort((a,b)=>a-b);
+  _collectionSortedComposite = out;
+  return _collectionSortedComposite;
+}
+function percentileComposite(position, value){
+  const sorted = collectionSortedComposite()[position];
+  let lo = 0, hi = sorted.length;
+  while (lo < hi){
+    const mid = (lo + hi) >> 1;
+    if (sorted[mid] < value) lo = mid + 1; else hi = mid;
+  }
+  return Math.round(lo / sorted.length * 100);
+}
+
+// ── Load listings from Downbad's public endpoint. No API key -- this is
+// the unauthenticated /public/ tier, confirmed with Downbad's dev as fine
+// for direct client-side use. Small payload (~85 active listings, not
+// the full 1678-Zappy collection), fetched once per page load. ──
+async function loadListings(){
+  const res = await fetch('https://market-api.downbad.farm/public/v1/collection/zappies-reborn/listings');
+  if (!res.ok) throw new Error(`Downbad listings -> ${res.status}`);
+  const data = await res.json();
+  return data.listings ?? [];
+}
+
+function renderAgents(){
+  const grid = document.getElementById('agents-grid');
+  const secondaryStat = SECONDARY_STAT[activeTab]; // undefined for QB, by design
+  const sorted = [...agents].sort((a,b) => compositeValue(activeTab, b) - compositeValue(activeTab, a));
+
+  const sortLabel = secondaryStat ? `${POSITION_STAT[activeTab]}+${secondaryStat}` : POSITION_STAT[activeTab];
+  document.getElementById('agents-hint').innerHTML =
+    `${sorted.length} listed · sorted by <b style="color:var(--text)">${sortLabel}</b> fit for <b style="color:var(--text)">${DISPLAY_NAME[activeTab]}</b>.`;
+
+  grid.innerHTML = sorted.map(z => {
+    const pct = percentileComposite(activeTab, compositeValue(activeTab, z));
+    const tier = fitTier(pct);
+    const bandClass = z.band ? `band-${z.band.toLowerCase().replace(/\s+/g, '-')}` : '';
+    const stat = POSITION_STAT[activeTab];
+
+    return `<div class="zcard fit-${tier.cls}" style="--pos-color:${POSITION_COLOR[activeTab]};">
+      ${imgWithFallback(z.image_url, z.asset_id, "zthumb", 'loading="lazy"')}
+      <div class="zbody">
+        <div class="zn">${z.name}</div>
+        <div class="zstats">
+          <span class="st ${stat==='VLT'?'hot':(secondaryStat==='VLT'?'warm':'')}">VLT ${z.VLT}</span>
+          <span class="st ${stat==='INS'?'hot':(secondaryStat==='INS'?'warm':'')}">INS ${z.INS}</span>
+          <span class="st ${stat==='SPK'?'hot':(secondaryStat==='SPK'?'warm':'')}">SPK ${z.SPK}</span>
+        </div>
+        ${z.band ? `<div class="band-pill ${bandClass}">${z.band}</div>` : ''}
+        <div class="price-row">
+          <div class="price-tag">${z.price}<span class="unit">${z.unit}</span></div>
+          <a class="buy-link" href="https://www.downbad.farm/tokens/${z.asset_id}" target="_blank" rel="noopener noreferrer">Buy ↗</a>
+        </div>
+      </div>
+      <div class="fit-footer fit-${tier.cls}">${tier.label} ${DISPLAY_NAME[activeTab]}</div>
+    </div>`;
+  }).join('');
+}
+
+window.setTab = function(pos){
+  activeTab = pos;
+  document.querySelectorAll('.lane-tab').forEach(t => t.classList.toggle('active', t.dataset.pos === pos));
+  renderAgents();
+};
+
+async function init(){
+  try {
+    const [stats, listings, season] = await Promise.all([
+      loadZappyStats(),
+      loadListings(),
+      fetchCurrentSeason(),
+    ]);
+    currentSeason = season;
+
+    // Join: permanent name/image/stats from zappy_stats.json, price/seller
+    // from the live listings, keyed on asset_id (same Algorand ASA ID in
+    // both sources -- no fuzzy matching needed).
+    const merged = [];
+    for (const listing of listings){
+      const permanent = stats[listing.asset_id];
+      if (!permanent) continue; // listed asset not in our collection data (shouldn't normally happen)
+      merged.push({
+        asset_id: listing.asset_id,
+        name: permanent.name,
+        image_url: permanent.image_url,
+        VLT: permanent.VLT, INS: permanent.INS, SPK: permanent.SPK,
+        price: listing.price, unit: listing.unit,
+      });
+    }
+
+    // Season stats/band override permanent values when a season is
+    // active/upcoming/playoffs -- same merge pattern as lineup.html's
+    // fetchHeldZappies(), so a listing shows the same numbers a coach
+    // would see if they already owned it and rostered it this week.
+    const seasonActive = currentSeason && ['upcoming', 'active', 'playoffs'].includes(currentSeason.status);
+    if (seasonActive && merged.length){
+      const seasonStats = await loadSeasonStats(currentSeason.id, merged.map(z => z.asset_id));
+      for (const z of merged){
+        const allocated = seasonStats[z.asset_id];
+        if (allocated){
+          z.VLT = allocated.VLT; z.INS = allocated.INS; z.SPK = allocated.SPK; z.band = allocated.band;
+        }
+      }
+    }
+
+    agents = merged;
+    document.getElementById('loading').style.display = 'none';
+    if (!agents.length){
+      document.getElementById('empty-state').style.display = 'block';
+      return;
+    }
+    document.getElementById('agents-wrap').style.display = 'block';
+    renderAgents();
+  } catch (err) {
+    console.error(err);
+    document.getElementById('loading').style.display = 'none';
+    const errEl = document.getElementById('error-state');
+    errEl.style.display = 'block';
+    errEl.textContent = "Couldn't load Free Agents — see console for details.";
+  }
+}
+
+// ── Wallet connect (nav consistency with other pages; not required to
+// browse this page, listings/stats are all public data). ──
+async function connectWallet(){
+  try {
+    const accounts = await peraWallet.connect();
+    accountAddress = accounts[0];
+    updateWalletButton();
+  } catch (err) {
+    if (err?.data?.type !== "CONNECT_MODAL_CLOSED") console.error(err);
+  }
+}
+function updateWalletButton(){
+  const btn = document.getElementById('wallet-btn');
+  if (accountAddress){
+    btn.textContent = `${accountAddress.slice(0,6)}…${accountAddress.slice(-4)}`;
+    btn.classList.add('connected');
+  }
+}
+window.connectWallet = connectWallet;
+peraWallet.reconnectSession().then(accounts => {
+  if (accounts.length){ accountAddress = accounts[0]; updateWalletButton(); }
+});
+
+init();
+</script>
+</body>
+</html>
