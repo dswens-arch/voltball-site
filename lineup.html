@@ -231,6 +231,7 @@
   .zstats{ display:flex; gap:8px; font-family:'IBM Plex Mono',monospace; font-size:11px; }
   .zstats .st{ display:flex; align-items:center; gap:3px; color:var(--text-dim); }
   .zstats .st.hot{ color:var(--text); font-weight:600; }
+  .zstats .st.warm{ color:#B9BECF; font-weight:500; } /* secondary stat -- present but visually lighter than primary */
   /* Season band is now the quiet secondary signal — same small-pill
      treatment Position Fit used to have. Still real, still worth
      glancing at, just not the first thing your eye hits anymore. */
@@ -1152,9 +1153,9 @@ function renderRoster(){
       <div class="zbody">
         <div class="zn">${z.name}</div>
         <div class="zstats">
-          <span class="st ${stat==='VLT'?'hot':''}">VLT ${z.VLT}</span>
-          <span class="st ${stat==='INS'?'hot':''}">INS ${z.INS}</span>
-          <span class="st ${stat==='SPK'?'hot':''}">SPK ${z.SPK}</span>
+          <span class="st ${stat==='VLT'?'hot':(secondaryStat==='VLT'?'warm':'')}">VLT ${z.VLT}</span>
+          <span class="st ${stat==='INS'?'hot':(secondaryStat==='INS'?'warm':'')}">INS ${z.INS}</span>
+          <span class="st ${stat==='SPK'?'hot':(secondaryStat==='SPK'?'warm':'')}">SPK ${z.SPK}</span>
         </div>
         ${isInjured ? `<div class="fit-badge injured-badge">🤕 Injured this week</div>` : (z.band ? `<div class="band-pill ${bandClass}">${z.band}</div>` : '')}
       </div>
