@@ -401,6 +401,22 @@ const FORMATIONS = {
   DEFENSE:  {QB:1, Striker:1, Mid:2, Guard:4},
 };
 const POSITION_STAT = {QB:"SPK", Striker:"VLT", Mid:"SPK", Guard:"INS"};
+// Secondary stat + real weights, matching voltball_engine.py /
+// voltball_position_fit.py exactly (mean-normalized against the real
+// 1678-Zappy collection -- see those files' history for why a flat
+// 70/30 split would have been wrong). QB has no secondary: it's a
+// team-wide multiplier, not a pooled position value.
+const SECONDARY_STAT = {Striker:"SPK", Mid:"INS", Guard:"VLT"};
+const POSITION_WEIGHTS = {
+  Striker: {primary: 0.119,  secondary: 0.0326},
+  Mid:     {primary: 0.077,  secondary: 0.0368},
+  Guard:   {primary: 0.070,  secondary: 0.0421},
+};
+function compositeValue(position, z){
+  if (position === "QB") return z.SPK; // unaffected, see above
+  const w = POSITION_WEIGHTS[position];
+  return z[POSITION_STAT[position]] * w.primary + z[SECONDARY_STAT[position]] * w.secondary;
+}
 const DISPLAY_NAME = {QB:"QB", Striker:"Surge Back", Mid:"Conductor", Guard:"Guard"};
 const ROSTER_SIZE = 8;
 
@@ -1006,21 +1022,27 @@ function fitTier(pct){
 // Percentile ranks are computed against the FULL 1678-Zappy collection
 // (ZAPPY_STATS), matching Discord's /voltball_scout, /voltball_zappy_lookup,
 // and /voltball_my_zappies exactly (voltball_position_fit.py's methodology).
-// An earlier version of this computed percentile only against the
-// wallet's OWN small held roster — meaning "Elite Guard" here could mean
-// something completely different from "Elite Guard" on Discord for the
-// exact same Zappy. Built once, cached, since the collection is static.
-let _collectionSortedStats = null;
-function collectionSortedStats(){
-  if (_collectionSortedStats) return _collectionSortedStats;
-  const vlt = [], ins = [], spk = [];
-  for (const z of Object.values(zappyStats)){ vlt.push(z.VLT); ins.push(z.INS); spk.push(z.SPK); }
-  vlt.sort((a,b)=>a-b); ins.sort((a,b)=>a-b); spk.sort((a,b)=>a-b);
-  _collectionSortedStats = { VLT: vlt, INS: ins, SPK: spk };
-  return _collectionSortedStats;
+// Ranked on the real weighted COMPOSITE (primary + secondary stat) now,
+// not a single raw stat -- a raw-stat percentile would silently
+// misrepresent fit the same way it briefly did server-side before
+// voltball_position_fit.py was updated to match. Built once, cached,
+// since the collection is static.
+let _collectionSortedComposite = null;
+function collectionSortedComposite(){
+  if (_collectionSortedComposite) return _collectionSortedComposite;
+  const out = {Striker: [], Mid: [], Guard: [], QB: []};
+  for (const z of Object.values(zappyStats)){
+    out.Striker.push(compositeValue("Striker", z));
+    out.Mid.push(compositeValue("Mid", z));
+    out.Guard.push(compositeValue("Guard", z));
+    out.QB.push(compositeValue("QB", z)); // trivially raw SPK, see compositeValue()
+  }
+  out.Striker.sort((a,b)=>a-b); out.Mid.sort((a,b)=>a-b); out.Guard.sort((a,b)=>a-b); out.QB.sort((a,b)=>a-b);
+  _collectionSortedComposite = out;
+  return _collectionSortedComposite;
 }
-function percentileWithin(stat, value){
-  const sorted = collectionSortedStats()[stat];
+function percentileComposite(position, value){
+  const sorted = collectionSortedComposite()[position];
   // Binary search for count of values strictly less than `value` —
   // matches voltball_position_fit.py's bisect_left approach exactly.
   let lo = 0, hi = sorted.length;
@@ -1108,18 +1130,20 @@ function renderRoster(){
   const grid = document.getElementById('roster-grid');
   const used = usedIds();
   const stat = POSITION_STAT[activeTab];
-  const sorted = [...heldZappies].sort((a,b) => b[stat] - a[stat]);
+  const secondaryStat = SECONDARY_STAT[activeTab]; // undefined for QB, by design
+  const sorted = [...heldZappies].sort((a,b) => compositeValue(activeTab, b) - compositeValue(activeTab, a));
   const needed = FORMATIONS[formation][activeTab];
   const filledCount = assignments[activeTab].length;
 
+  const sortLabel = secondaryStat ? `${stat}+${secondaryStat}` : stat;
   document.getElementById('roster-hint').innerHTML =
-    `Sorted by <b style="color:var(--text)">${stat}</b> for <b style="color:var(--text)">${DISPLAY_NAME[activeTab]}</b> — click a card to assign it. ${filledCount>=needed ? `<span style="color:var(--guard)">This lane is full.</span>` : ''}`;
+    `Sorted by <b style="color:var(--text)">${sortLabel}</b> for <b style="color:var(--text)">${DISPLAY_NAME[activeTab]}</b> — click a card to assign it. ${filledCount>=needed ? `<span style="color:var(--guard)">This lane is full.</span>` : ''}`;
 
   grid.innerHTML = sorted.map(z => {
     const isUsed = used.has(z.asset_id);
     const isInjured = injuredAssetIds.has(z.asset_id);
     const isDisabled = isUsed || isInjured;
-    const pct = percentileWithin(stat, z[stat]);
+    const pct = percentileComposite(activeTab, compositeValue(activeTab, z));
     const tier = fitTier(pct);
     const bandClass = z.band ? `band-${z.band.toLowerCase().replace(/\s+/g, '-')}` : '';
     const fitClass = `fit-${tier.cls}`;
