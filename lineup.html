@@ -228,12 +228,12 @@
   .zcard .zthumb{ width:100%; aspect-ratio:1; object-fit:cover; display:block; background:var(--panel-2); margin-bottom:10px; }
   .zcard .zbody{ padding:0 12px 12px; }
   .zcard .zn{ font-size:13px; font-weight:600; margin-bottom:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .zstats{ display:flex; gap:6px; font-family:'IBM Plex Mono',monospace; font-size:11px; flex-wrap:wrap; }
-  .zstats .st{ display:flex; align-items:center; gap:3px; color:var(--text-dim); padding:2px 0; }
+  .zstats{ display:flex; gap:4px; font-family:'IBM Plex Mono',monospace; font-size:10px; flex-wrap:nowrap; }
+  .zstats .st{ display:flex; align-items:center; gap:2px; color:var(--text-dim); padding:2px 0; white-space:nowrap; }
   /* Primary stat: filled pill in the active lane's own accent color —
      unmistakably "this is the stat that matters most here." */
   .zstats .st.hot{
-    font-weight:700; padding:2px 7px; border-radius:5px;
+    font-weight:700; padding:2px 6px; border-radius:5px;
     background: var(--pos-color, var(--text)); color:#0A0B10;
   }
   /* Secondary stat: outlined pill, same accent color but NOT filled —
@@ -241,7 +241,7 @@
      shade of gray (that read as identical to primary at a glance) —
      needs its own shape, not just a dimmer version of the same shape. */
   .zstats .st.warm{
-    font-weight:600; padding:1px 6px; border-radius:5px;
+    font-weight:600; padding:1px 5px; border-radius:5px;
     border: 1.5px solid var(--pos-color, var(--text-dim));
     color: var(--pos-color, var(--text));
   }
