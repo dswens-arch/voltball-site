@@ -138,8 +138,19 @@
     .wordmark{ font-size:16px; gap:7px; }
     .wordmark .bolt{ font-size:17px; }
     .nav-right{ flex-direction:column; align-items:flex-end; gap:8px; }
-    .nav-links{ gap:16px; margin-right:0; }
-    .nav-link{ font-size:11px; }
+    .nav-right{ flex-direction:row; align-items:center; gap:12px; }
+    .hamburger-btn{ display:flex; }
+    .nav-links{
+      display:none; position:fixed; inset:0;
+      background: var(--bg);
+      flex-direction:column; align-items:flex-start; justify-content:flex-start;
+      padding:90px 28px 28px; gap:0; z-index:60;
+    }
+    .nav-links.open{ display:flex; }
+    .nav-link{
+      font-size:20px; padding:16px 0; width:100%;
+      border-bottom:1px solid var(--line); white-space:normal;
+    }
     .wallet-btn{ font-size:12px; padding:8px 14px; }
   }
 </style>
@@ -149,7 +160,7 @@
 <nav>
   <a class="wordmark" href="./index.html"><span class="bolt">⚡</span><span class="display">VOLTBALL</span></a>
   <div class="nav-right">
-    <div class="nav-links">
+    <div class="nav-links" id="nav-links">
       <a class="nav-link" href="./lineup.html">Lineup</a>
       <a class="nav-link" href="./scout.html">Scout</a>
       <a class="nav-link active" href="./free-agents.html">Free Agents</a>
@@ -158,8 +169,22 @@
       <a class="nav-link" href="./results.html">Results</a>
     </div>
     <button class="wallet-btn" id="wallet-btn" onclick="connectWallet()">Connect Wallet</button>
+    <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMobileNav()" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
+<script>
+  function toggleMobileNav(){
+    const links = document.getElementById('nav-links');
+    const btn = document.getElementById('hamburger-btn');
+    const isOpen = links.classList.toggle('open');
+    btn.classList.toggle('open', isOpen);
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  }
+  window.toggleMobileNav = toggleMobileNav;
+</script>
 
 <main>
   <div class="page-head">
