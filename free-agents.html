@@ -37,7 +37,13 @@
     position:sticky; top:0; background:rgba(11,13,20,0.85); backdrop-filter: blur(10px);
     z-index:50;
   }
-  .wordmark{ display:flex; align-items:center; gap:10px; font-size:20px; color:inherit; cursor:pointer; text-decoration:none; }
+  .wordmark{
+    display:flex; align-items:center; gap:10px; font-size:20px; color:inherit; cursor:pointer; text-decoration:none;
+    position:relative; z-index:70;
+    /* Same reasoning as .hamburger-btn -- without an explicit position+
+       z-index, this is a normal in-flow element and gets buried behind
+       the full-screen mobile menu (.nav-links, z-index:60) once it opens. */
+  }
   .wordmark .bolt{ color:var(--striker); font-size:22px; filter: drop-shadow(0 0 8px rgba(232,255,60,0.6)); }
   .nav-links{ display:flex; align-items:center; gap:22px; margin-right:20px; }
   .nav-link{
@@ -53,7 +59,12 @@
     cursor:pointer; transition: opacity .15s ease;
   }
   .wallet-btn:hover{ opacity:.85; }
-  .wallet-btn.connected{ background:var(--panel-2); color:var(--text); border:1px solid var(--line); font-family:'IBM Plex Mono',monospace; font-size:12px; }
+  .wallet-btn.connected{
+    background:var(--panel-2); color:var(--guard); border:1px solid var(--guard);
+    display:flex; align-items:center; gap:8px; cursor:default;
+  }
+  .wallet-btn.connected:hover{ box-shadow:none; transform:none; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--guard); box-shadow:0 0 8px var(--guard); }
 
   .hamburger-btn{
     display:none; flex-direction:column; justify-content:center; gap:5px;
@@ -176,6 +187,7 @@
       border-bottom:1px solid var(--line); white-space:normal;
     }
     .wallet-btn{ font-size:12px; padding:8px 14px; }
+    .wallet-btn.connected{ font-size:11px; padding:7px 12px; }
   }
 </style>
 </head>
@@ -475,7 +487,7 @@ async function connectWallet(){
 function updateWalletButton(){
   const btn = document.getElementById('wallet-btn');
   if (accountAddress){
-    btn.textContent = `${accountAddress.slice(0,6)}…${accountAddress.slice(-4)}`;
+    btn.innerHTML = `<span class="dot"></span> ${accountAddress.slice(0,6)}…${accountAddress.slice(-4)}`;
     btn.classList.add('connected');
   }
 }

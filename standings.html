@@ -36,7 +36,13 @@
     position:sticky; top:0; background:rgba(11,13,20,0.85); backdrop-filter: blur(10px);
     z-index:50;
   }
-  .wordmark{ display:flex; align-items:center; gap:10px; font-size:20px; color:inherit; cursor:pointer; text-decoration:none; }
+  .wordmark{
+    display:flex; align-items:center; gap:10px; font-size:20px; color:inherit; cursor:pointer; text-decoration:none;
+    position:relative; z-index:70;
+    /* Same reasoning as .hamburger-btn -- without an explicit position+
+       z-index, this is a normal in-flow element and gets buried behind
+       the full-screen mobile menu (.nav-links, z-index:60) once it opens. */
+  }
   .wordmark .bolt{ color:var(--striker); font-size:22px; filter: drop-shadow(0 0 8px rgba(232,255,60,0.6)); }
   .nav-links{ display:flex; align-items:center; gap:22px; margin-right:20px; }
   .nav-link{
