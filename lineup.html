@@ -63,6 +63,12 @@
   .hamburger-btn{
     display:none; flex-direction:column; justify-content:center; gap:5px;
     width:32px; height:32px; background:none; border:none; cursor:pointer; padding:4px; flex-shrink:0;
+    position:relative; z-index:70;
+    /* Explicit position+z-index, higher than .nav-links (z-index:60) --
+       without this, the button is a normal in-flow element and paints
+       BEHIND any positioned sibling with a z-index regardless of DOM
+       nesting, so once the full-screen menu opens it visually buries
+       its own toggle/close button underneath itself. */
   }
   .hamburger-btn span{
     display:block; width:100%; height:2px; background:var(--text); border-radius:2px;
@@ -311,10 +317,16 @@
     .lane[data-pos="QB"]{ max-width: none; margin: 0; }
     .formations{ grid-template-columns: 1fr; }
 
-    nav{ padding: 14px 16px; }
+    nav{ padding: 14px 16px; backdrop-filter: none; }
+    /* backdrop-filter above is the actual fix, not cosmetic: a filter/
+       backdrop-filter on an ancestor makes it the CONTAINING BLOCK for
+       any position:fixed descendant per spec -- meaning .nav-links
+       below was sizing itself to nav's own small bounding box instead
+       of the real viewport, not rendering translucent at all. Only
+       needs disabling here, at the breakpoint where .nav-links actually
+       becomes position:fixed -- desktop keeps the frosted-glass header. */
     .wordmark{ font-size:16px; gap:7px; }
     .wordmark .bolt{ font-size:17px; }
-    .nav-right{ flex-direction:column; align-items:flex-end; gap:8px; }
     .nav-right{ flex-direction:row; align-items:center; gap:12px; }
     .hamburger-btn{ display:flex; }
     .nav-links{
