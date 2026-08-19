@@ -22,6 +22,13 @@ on:
   # schedule:
   #   - cron: '0 6 * * 1'  # every Monday at 06:00 UTC
 
+# Explicit, not relying on the repo's default Actions permission setting
+# (which is often read-only) -- this grants just this workflow's
+# auto-generated token write access to repo contents, needed for the
+# final "git push" step below.
+permissions:
+  contents: write
+
 jobs:
   sync-images:
     runs-on: ubuntu-latest
