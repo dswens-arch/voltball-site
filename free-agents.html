@@ -327,10 +327,41 @@ async function loadSeasonStats(seasonId, assetIds){
 function avatarFor(seed, size=200){
   return `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(seed)}&size=${size}`;
 }
+// All real image_url values point at ipfs.io -- a public gateway known
+// to be slow/unreliable specifically on mobile networks and in-app
+// browsers (matches the exact failure pattern reported: every image
+// failing on mobile, fine on desktop where it likely already succeeded
+// and cached before this became noticeable). Rewrite to Cloudflare's
+// IPFS gateway as the first attempt instead, with a fallback CHAIN
+// rather than a single swap: try Cloudflare -> try the original ipfs.io
+// URL -> fall back to the generated placeholder avatar. Each stage is
+// tracked via a data attribute since inline onerror can only run simple
+// JS, not a multi-step sequence.
+function ipfsGatewayUrl(url, gateway){
+  const m = url.match(/ipfs\.io\/ipfs\/(.+)$/);
+  if (!m) return url; // not an ipfs.io URL (or already rewritten) -- leave as-is
+  return `https://${gateway}/ipfs/${m[1]}`;
+}
+
+window.handleImgFallback = function(img){
+  const stage = parseInt(img.dataset.fallbackStage || '0', 10);
+  if (stage === 0){
+    img.dataset.fallbackStage = '1';
+    img.src = img.dataset.secondary;
+  } else if (stage === 1){
+    img.dataset.fallbackStage = '2';
+    img.onerror = null; // stop here -- the generated avatar always succeeds
+    img.src = img.dataset.avatar;
+  }
+};
+
 function imgWithFallback(realUrl, assetId, cls, extra=""){
-  const fallback = avatarFor(assetId);
-  const src = realUrl || fallback;
-  return `<img class="${cls}" src="${src}" ${extra} onerror="this.onerror=null; this.src='${fallback}';">`;
+  const fallbackAvatar = avatarFor(assetId);
+  const primarySrc = realUrl ? ipfsGatewayUrl(realUrl, 'cloudflare-ipfs.com') : fallbackAvatar;
+  const secondarySrc = realUrl || fallbackAvatar;
+  return `<img class="${cls}" src="${primarySrc}"
+    data-fallback-stage="0" data-secondary="${secondarySrc}" data-avatar="${fallbackAvatar}"
+    ${extra} onerror="window.handleImgFallback(this)">`;
 }
 
 // ── Percentile ranking against the full collection's composite
