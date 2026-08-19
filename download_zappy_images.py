@@ -104,18 +104,28 @@ def main():
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    print(f"Processing {len(stats)} Zappies with {CONCURRENCY} parallel workers...")
+    # Idempotent re-runs: an entry whose image_url already points at a
+    # local file (from a previous successful run) has no CID to extract
+    # and would otherwise get misreported as a fresh failure every time
+    # this runs again. Skip those entirely -- only attempt entries still
+    # pointing at an external ipfs.io URL.
+    already_local = {aid for aid, entry in stats.items() if entry.get("image_url", "").startswith(f"./{OUTPUT_DIR}/")}
+    to_process = {aid: entry for aid, entry in stats.items() if aid not in already_local}
+
+    if already_local:
+        print(f"Skipping {len(already_local)} already self-hosted from a previous run.")
+    print(f"Processing {len(to_process)} remaining Zappies with {CONCURRENCY} parallel workers...")
     succeeded, failed = [], []
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=CONCURRENCY) as pool:
-        futures = {pool.submit(process_one, asset_id, entry): asset_id for asset_id, entry in stats.items()}
+        futures = {pool.submit(process_one, asset_id, entry): asset_id for asset_id, entry in to_process.items()}
         done_count = 0
         for future in concurrent.futures.as_completed(futures):
             asset_id, ok = future.result()
             (succeeded if ok else failed).append(asset_id)
             done_count += 1
             if done_count % 100 == 0:
-                print(f"  ...{done_count}/{len(stats)} processed ({len(failed)} failures so far)")
+                print(f"  ...{done_count}/{len(to_process)} processed ({len(failed)} failures so far)")
 
     # Rewrite zappy_stats.json to point at the local files for everything
     # that succeeded. Anything that failed on every gateway keeps its
@@ -136,7 +146,7 @@ def main():
         # Non-zero exit if a meaningful fraction failed, so the Actions
         # run visibly flags it rather than silently committing a partial
         # result that looks complete.
-        if len(failed) > len(stats) * 0.05:
+        if to_process and len(failed) > len(to_process) * 0.05:
             print(f"\nWARNING: {len(failed)} failures is more than 5% of the collection -- check gateway health before trusting this run.")
             sys.exit(1)
 
