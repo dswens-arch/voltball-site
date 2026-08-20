@@ -277,9 +277,45 @@
   .live-score{
     font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:38px; color:var(--text-dim);
     text-align:center; min-width:70px; transition:transform .15s ease;
+    position:relative; /* anchors .score-flash below */
   }
   .live-score.bump{ transform:scale(1.1); color:var(--striker); }
+  .score-flash{
+    position:absolute; top:-6px; left:50%; transform:translateX(-50%);
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:15px;
+    pointer-events:none; opacity:0;
+    animation: score-flash-rise 1.4s ease-out forwards;
+  }
+  .score-flash.positive{ color:var(--guard); }
+  .score-flash.negative{ color:var(--alert); }
+  @keyframes score-flash-rise{
+    0%{ opacity:0; transform:translate(-50%, 6px); }
+    15%{ opacity:1; transform:translate(-50%, -8px); }
+    75%{ opacity:1; transform:translate(-50%, -22px); }
+    100%{ opacity:0; transform:translate(-50%, -32px); }
+  }
   .live-vs{ font-size:11px; color:var(--text-dim); text-align:center; font-family:'Chakra Petch',sans-serif; }
+
+  .live-voltage-label{
+    text-align:center; font-family:'IBM Plex Mono',monospace; font-size:10px;
+    letter-spacing:0.2em; color:var(--text-dim); text-transform:uppercase; margin-top:2px;
+  }
+
+  .voltage-chart{ margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
+  .voltage-chart-label{
+    font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:10.5px; letter-spacing:0.02em;
+    color:var(--text-dim); text-align:center; margin-bottom:12px;
+  }
+  .vc-bars-row{ display:flex; gap:8px; align-items:flex-end; height:80px; }
+  .vc-quarter{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; }
+  .vc-bars{ flex:1; display:flex; align-items:flex-end; gap:3px; width:100%; justify-content:center; }
+  .vc-bar{
+    width:14px; border-radius:3px 3px 0 0; height:0%; min-height:2px;
+    transition: height .6s cubic-bezier(.4,.15,.2,1);
+  }
+  .vc-bar-a{ background:var(--guard); }
+  .vc-bar-b{ background:var(--qb); }
+  .vc-qlabel{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-dim); margin-top:6px; }
 
   .live-momentum{ display:flex; gap:6px; margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
   .live-q-chip{
@@ -451,11 +487,21 @@
           </div>
         </div>
       </div>
+      <div class="live-voltage-label">Voltage</div>
       <div class="live-momentum" id="live-momentum">
         <div class="live-q-chip" data-lq="1"><div class="lqlabel">Q1</div><div class="lqscore">—</div></div>
         <div class="live-q-chip" data-lq="2"><div class="lqlabel">Q2</div><div class="lqscore">—</div></div>
         <div class="live-q-chip" data-lq="3"><div class="lqlabel">Q3</div><div class="lqscore">—</div></div>
         <div class="live-q-chip" data-lq="4"><div class="lqlabel">Q4</div><div class="lqscore">—</div></div>
+      </div>
+      <div class="voltage-chart">
+        <div class="voltage-chart-label">Voltage by Quarter — the actual up-and-down, not the running total above</div>
+        <div class="vc-bars-row">
+          <div class="vc-quarter"><div class="vc-bars"><div class="vc-bar vc-bar-a" id="vc-bar-a-1"></div><div class="vc-bar vc-bar-b" id="vc-bar-b-1"></div></div><div class="vc-qlabel">Q1</div></div>
+          <div class="vc-quarter"><div class="vc-bars"><div class="vc-bar vc-bar-a" id="vc-bar-a-2"></div><div class="vc-bar vc-bar-b" id="vc-bar-b-2"></div></div><div class="vc-qlabel">Q2</div></div>
+          <div class="vc-quarter"><div class="vc-bars"><div class="vc-bar vc-bar-a" id="vc-bar-a-3"></div><div class="vc-bar vc-bar-b" id="vc-bar-b-3"></div></div><div class="vc-qlabel">Q3</div></div>
+          <div class="vc-quarter"><div class="vc-bars"><div class="vc-bar vc-bar-a" id="vc-bar-a-4"></div><div class="vc-bar vc-bar-b" id="vc-bar-b-4"></div></div><div class="vc-qlabel">Q4</div></div>
+        </div>
       </div>
     </div>
 
@@ -814,8 +860,17 @@ function startLivePlayback(match){
 
   const events = match.events || [];
   const quarterTotals = match.quarter_totals || [];
+  const quartersBreakdown = match.quarters || []; // per-quarter, non-cumulative -- the actual swing chart data
   const recap = match.recap || null;
   const turningPoint = recap ? recap.turning_point : null;
+
+  // Shared scale across all 8 bars (4 quarters x 2 teams) so relative
+  // height actually means something -- a bar twice as tall genuinely
+  // represents twice the Voltage that quarter, not an independently
+  // normalized per-quarter scale that would make every quarter's winner
+  // look like they dominated equally.
+  const allQuarterValues = quartersBreakdown.flatMap(q => [q.team_a_voltage, q.team_b_voltage]);
+  const maxQuarterVoltage = allQuarterValues.length ? Math.max(...allQuarterValues, 0.01) : 0.01;
 
   function isTurningEvent(e){
     if (!turningPoint || turningPoint.source !== 'signature') return false;
@@ -861,12 +916,36 @@ function startLivePlayback(match){
       chip.classList.add('live', lead);
       chip.querySelector('.lqscore').textContent = `${item.qt.team_a_total}–${item.qt.team_b_total}`;
     }
+    const qData = quartersBreakdown.find(q => q.quarter === item.q);
+    if (qData){
+      const barA = document.getElementById(`vc-bar-a-${item.q}`);
+      const barB = document.getElementById(`vc-bar-b-${item.q}`);
+      if (barA) barA.style.height = `${Math.max(4, (qData.team_a_voltage / maxQuarterVoltage) * 100)}%`;
+      if (barB) barB.style.height = `${Math.max(4, (qData.team_b_voltage / maxQuarterVoltage) * 100)}%`;
+    }
   }
 
   function delayFor(item){
     if (item.type === 'qheader') return 700;
     if (item.type === 'qend') return 600;
     return item.kind === 'signature' ? 5200 : 3800;
+  }
+
+  function flashScoreImpact(teamKey, delta){
+    // The visible payoff for a real-delta event (signature plays are the
+    // only kind with one -- see resolve_match's docstring on why flavor
+    // events don't get a fake number). The running score itself only
+    // updates once per quarter (revealQuarterEnd), on purpose, so a
+    // mid-quarter signature play needs its OWN visible cue or it just
+    // reads as another line of text with no obvious connection to the
+    // score above it.
+    const targetEl = teamKey === 'a' ? scoreAEl : (teamKey === 'b' ? scoreBEl : null);
+    if (!targetEl || delta === null || delta === undefined) return;
+    const flash = document.createElement('span');
+    flash.className = 'score-flash ' + (delta >= 0 ? 'positive' : 'negative');
+    flash.textContent = (delta >= 0 ? '+' : '') + delta;
+    targetEl.appendChild(flash);
+    flash.addEventListener('animationend', () => flash.remove());
   }
 
   function applyItem(item){
@@ -894,6 +973,9 @@ function startLivePlayback(match){
         ? `<span class="live-score-pill">${item.delta >= 0 ? '+' : ''}${item.delta} Voltage</span>` : '';
       row.innerHTML = `<span class="licon">${item.icon || '•'}</span><span class="ltxt">${item.text}${pill}</span>`;
       feedEl.appendChild(row);
+      if (item.delta !== null && item.delta !== undefined){
+        flashScoreImpact(item.team, item.delta);
+      }
     }
     feedEl.scrollTop = feedEl.scrollHeight;
   }
