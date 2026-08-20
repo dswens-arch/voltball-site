@@ -277,23 +277,8 @@
   .live-score{
     font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:38px; color:var(--text-dim);
     text-align:center; min-width:70px; transition:transform .15s ease;
-    position:relative; /* anchors .score-flash below */
   }
   .live-score.bump{ transform:scale(1.1); color:var(--striker); }
-  .score-flash{
-    position:absolute; top:-6px; left:50%; transform:translateX(-50%);
-    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:15px;
-    pointer-events:none; opacity:0;
-    animation: score-flash-rise 1.4s ease-out forwards;
-  }
-  .score-flash.positive{ color:var(--guard); }
-  .score-flash.negative{ color:var(--alert); }
-  @keyframes score-flash-rise{
-    0%{ opacity:0; transform:translate(-50%, 6px); }
-    15%{ opacity:1; transform:translate(-50%, -8px); }
-    75%{ opacity:1; transform:translate(-50%, -22px); }
-    100%{ opacity:0; transform:translate(-50%, -32px); }
-  }
   .live-vs{ font-size:11px; color:var(--text-dim); text-align:center; font-family:'Chakra Petch',sans-serif; }
 
   .live-voltage-label{
@@ -311,10 +296,16 @@
   .vc-bars{ flex:1; display:flex; align-items:flex-end; gap:3px; width:100%; justify-content:center; }
   .vc-bar{
     width:14px; border-radius:3px 3px 0 0; height:0%; min-height:2px;
-    transition: height .6s cubic-bezier(.4,.15,.2,1);
+    transition: height .6s cubic-bezier(.4,.15,.2,1), box-shadow .15s ease;
   }
   .vc-bar-a{ background:var(--guard); }
   .vc-bar-b{ background:var(--qb); }
+  .vc-bar.pulsing{ animation: vc-bar-pulse .5s ease-out; }
+  @keyframes vc-bar-pulse{
+    0%{ filter:brightness(1); }
+    35%{ filter:brightness(1.8); }
+    100%{ filter:brightness(1); }
+  }
   .vc-qlabel{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-dim); margin-top:6px; }
 
   .live-momentum{ display:flex; gap:6px; margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
@@ -884,9 +875,15 @@ function startLivePlayback(match){
   // the authoritative number the engine already verified. Post-match
   // events (injuries, a tie-breaker roll) trail at the end.
   const queue = [];
+  const quarterDurations = {}; // ms of qheader+events for each quarter, at 1x -- used to time the bar climb below
   for (let q = 1; q <= 4; q++){
     queue.push({type:'qheader', q});
-    events.filter(e => e.quarter === q).forEach(e => queue.push({type:'event', ...e}));
+    let qDuration = delayFor({type:'qheader'});
+    events.filter(e => e.quarter === q).forEach(e => {
+      queue.push({type:'event', ...e});
+      qDuration += delayFor(e);
+    });
+    quarterDurations[q] = qDuration;
     const qt = quarterTotals.find(t => t.quarter === q);
     queue.push({type:'qend', q, qt, turning: !!(turningPoint && turningPoint.source === 'quarter_swing' && turningPoint.quarter === q)});
   }
@@ -916,13 +913,45 @@ function startLivePlayback(match){
       chip.classList.add('live', lead);
       chip.querySelector('.lqscore').textContent = `${item.qt.team_a_total}–${item.qt.team_b_total}`;
     }
-    const qData = quartersBreakdown.find(q => q.quarter === item.q);
-    if (qData){
-      const barA = document.getElementById(`vc-bar-a-${item.q}`);
-      const barB = document.getElementById(`vc-bar-b-${item.q}`);
-      if (barA) barA.style.height = `${Math.max(4, (qData.team_a_voltage / maxQuarterVoltage) * 100)}%`;
-      if (barB) barB.style.height = `${Math.max(4, (qData.team_b_voltage / maxQuarterVoltage) * 100)}%`;
+    // Bars for this quarter already reached their final height on their
+    // own -- their climb was timed to finish right as this quarter's
+    // events did, not triggered by this reveal. See startVoltageBarClimb.
+  }
+
+  // Kicks off a bar's climb toward its ALREADY-KNOWN final height (the
+  // real per-quarter Voltage, not a guess), timed via CSS transition to
+  // arrive right as that quarter's events finish playing. The number was
+  // never a secret client-side -- the whole match loads at once -- this
+  // is purely about PACING the reveal to feel continuous instead of
+  // snapping into place, which is the actual thing being fixed here.
+  function startVoltageBarClimb(quarter){
+    const qData = quartersBreakdown.find(qd => qd.quarter === quarter);
+    if (!qData) return;
+    const durationMs = Math.max(300, (quarterDurations[quarter] || 4000) / speedMult);
+    const barA = document.getElementById(`vc-bar-a-${quarter}`);
+    const barB = document.getElementById(`vc-bar-b-${quarter}`);
+    if (barA){
+      barA.style.transitionDuration = `${durationMs}ms`;
+      barA.style.height = `${Math.max(4, (qData.team_a_voltage / maxQuarterVoltage) * 100)}%`;
     }
+    if (barB){
+      barB.style.transitionDuration = `${durationMs}ms`;
+      barB.style.height = `${Math.max(4, (qData.team_b_voltage / maxQuarterVoltage) * 100)}%`;
+    }
+  }
+
+  function pulseVoltageBar(teamKey, quarter, delta){
+    // The direct replacement for the old floating "-2.7 above the score"
+    // -- ties a signature play's real impact to the thing that's
+    // actually moving (this quarter's bar, mid-climb) instead of a
+    // disconnected badge over a number that doesn't move until the
+    // quarter ends.
+    if (!quarter || delta === null || delta === undefined) return;
+    const barEl = document.getElementById(`vc-bar-${teamKey}-${quarter}`);
+    if (!barEl) return;
+    barEl.style.boxShadow = delta >= 0 ? '0 0 12px 3px var(--guard)' : '0 0 12px 3px var(--alert)';
+    barEl.classList.add('pulsing');
+    setTimeout(() => { barEl.classList.remove('pulsing'); barEl.style.boxShadow = 'none'; }, 500);
   }
 
   function delayFor(item){
@@ -931,22 +960,7 @@ function startLivePlayback(match){
     return item.kind === 'signature' ? 5200 : 3800;
   }
 
-  function flashScoreImpact(teamKey, delta){
-    // The visible payoff for a real-delta event (signature plays are the
-    // only kind with one -- see resolve_match's docstring on why flavor
-    // events don't get a fake number). The running score itself only
-    // updates once per quarter (revealQuarterEnd), on purpose, so a
-    // mid-quarter signature play needs its OWN visible cue or it just
-    // reads as another line of text with no obvious connection to the
-    // score above it.
-    const targetEl = teamKey === 'a' ? scoreAEl : (teamKey === 'b' ? scoreBEl : null);
-    if (!targetEl || delta === null || delta === undefined) return;
-    const flash = document.createElement('span');
-    flash.className = 'score-flash ' + (delta >= 0 ? 'positive' : 'negative');
-    flash.textContent = (delta >= 0 ? '+' : '') + delta;
-    targetEl.appendChild(flash);
-    flash.addEventListener('animationend', () => flash.remove());
-  }
+
 
   function applyItem(item){
     if (item.type === 'qheader'){
@@ -954,6 +968,7 @@ function startLivePlayback(match){
       h.className = 'live-q-header';
       h.textContent = item.q ? `Quarter ${item.q}` : 'Final';
       feedEl.appendChild(h);
+      if (item.q) startVoltageBarClimb(item.q);
 
     } else if (item.type === 'qend'){
       revealQuarterEnd(item);
@@ -974,7 +989,7 @@ function startLivePlayback(match){
       row.innerHTML = `<span class="licon">${item.icon || '•'}</span><span class="ltxt">${item.text}${pill}</span>`;
       feedEl.appendChild(row);
       if (item.delta !== null && item.delta !== undefined){
-        flashScoreImpact(item.team, item.delta);
+        pulseVoltageBar(item.team, item.quarter, item.delta);
       }
     }
     feedEl.scrollTop = feedEl.scrollHeight;
@@ -1037,6 +1052,15 @@ function startLivePlayback(match){
       const item = queue[idx++];
       if (item.type === 'qend') revealQuarterEnd(item);
     }
+    // Bars normally start climbing at qheader time; skipping bypasses
+    // that entirely, so set every quarter's bars straight to their
+    // final height with no animation delay.
+    quartersBreakdown.forEach(qData => {
+      const barA = document.getElementById(`vc-bar-a-${qData.quarter}`);
+      const barB = document.getElementById(`vc-bar-b-${qData.quarter}`);
+      if (barA){ barA.style.transitionDuration = '0ms'; barA.style.height = `${Math.max(4, (qData.team_a_voltage / maxQuarterVoltage) * 100)}%`; }
+      if (barB){ barB.style.transitionDuration = '0ms'; barB.style.height = `${Math.max(4, (qData.team_b_voltage / maxQuarterVoltage) * 100)}%`; }
+    });
     finish();
   };
 
