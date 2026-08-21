@@ -138,6 +138,11 @@
     text-transform:uppercase; color:var(--striker); background:rgba(232,255,60,0.12);
     padding:2px 10px; border-radius:20px; display:inline-block; margin-top:6px;
   }
+  .still-airing-badge{
+    font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:11px; letter-spacing:0.05em;
+    text-transform:uppercase; color:var(--alert); background:rgba(255,61,110,0.12);
+    padding:6px 14px; border-radius:20px; display:inline-block;
+  }
   .cpu-tag{
     font-family:'IBM Plex Mono',monospace; font-size:9px; color:var(--text-dim);
     border:1px solid var(--line); border-radius:4px; padding:1px 5px; margin-left:6px; vertical-align:middle;
@@ -690,11 +695,48 @@ function renderRosterPanel(lineupSnapshot, stats){
 function renderMatchRecap(match, stats){
   const teamA = teamsById[match.team_a_id];
   const teamB = teamsById[match.team_b_id];
-  const aWon = match.winner_team_id === match.team_a_id;
-  const bWon = match.winner_team_id === match.team_b_id;
-
   const teamImg = (t) => (t && t.hero_type && HERO_IMAGE[t.hero_type]) || avatarFor(t ? t.id : 'unknown');
   const isYou = (id) => id === myTeamId;
+
+  // A match row exists and has real scores the MOMENT resolution runs --
+  // well before the 5-minute kickoff delay even starts, let alone before
+  // the ~1 minute live playback actually airs. Showing the score here
+  // unconditionally spoils exactly the thing the kickoff/live-playback
+  // flow was built to protect. Gate on recap_posted_at (set once the
+  // delayed Discord recap post fires -- see post_ready_recaps in
+  // voltball_cog.py) as the single source of truth for "is this actually
+  // over yet," not just "does a row exist."
+  const stillAiring = match.playback_starts_at && !match.recap_posted_at;
+  if (stillAiring){
+    return `<div class="match-recap">
+      <div class="recap-header">
+        <div class="recap-team">
+          <img src="${teamImg(teamA)}" onerror="this.onerror=null; this.src='${avatarFor(match.team_a_id)}';" alt="">
+          <div>
+            <div class="recap-team-name">${teamA ? teamA.team_name : 'Unknown'}${teamA && teamA.is_cpu ? '<span class="cpu-tag">CPU</span>' : ''}${isYou(match.team_a_id) ? '<span class="you-tag">YOU</span>' : ''}</div>
+            <div class="recap-team-hero">${(teamA && teamA.hero_type) || 'No Coach'}</div>
+          </div>
+        </div>
+        <div style="text-align:center;">
+          <div class="still-airing-badge">🔴 LIVE — SCORE HIDDEN</div>
+          ${match.is_playoff ? `<div class="playoff-badge">Playoff</div>` : ''}
+        </div>
+        <div class="recap-team reverse">
+          <img src="${teamImg(teamB)}" onerror="this.onerror=null; this.src='${avatarFor(match.team_b_id)}';" alt="">
+          <div>
+            <div class="recap-team-name">${teamB ? teamB.team_name : 'Unknown'}${teamB && teamB.is_cpu ? '<span class="cpu-tag">CPU</span>' : ''}${isYou(match.team_b_id) ? '<span class="you-tag">YOU</span>' : ''}</div>
+            <div class="recap-team-hero">${(teamB && teamB.hero_type) || 'No Coach'}</div>
+          </div>
+        </div>
+      </div>
+      <div class="recap-actions">
+        <a class="watch-replay-btn" href="results.html?live=${match.id}">▶ Watch Live</a>
+      </div>
+    </div>`;
+  }
+
+  const aWon = match.winner_team_id === match.team_a_id;
+  const bWon = match.winner_team_id === match.team_b_id;
 
   const highlights = (match.log_lines || []).filter(line => HIGHLIGHT_MARKERS.some(m => line.includes(m)));
 
