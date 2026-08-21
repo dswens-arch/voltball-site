@@ -291,8 +291,17 @@
     font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:10.5px; letter-spacing:0.02em;
     color:var(--text-dim); text-align:center; margin-bottom:12px;
   }
-  .vc-bars-row{ display:flex; gap:8px; align-items:flex-end; height:80px; }
-  .vc-quarter{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; }
+  .vc-bars-row{ display:flex; gap:8px; align-items:flex-end; height:80px; margin-top:26px; }
+  .vc-quarter{ flex:1; display:flex; flex-direction:column; align-items:center; height:100%; position:relative; }
+  .vc-callout{
+    position:absolute; top:-24px; left:50%; transform:translateX(-50%);
+    font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:12px;
+    white-space:nowrap; opacity:0; pointer-events:none;
+    transition: opacity .25s ease;
+  }
+  .vc-callout.show{ opacity:1; }
+  .vc-callout.positive{ color:var(--guard); }
+  .vc-callout.negative{ color:var(--alert); }
   .vc-bars{ flex:1; display:flex; align-items:flex-end; gap:3px; width:100%; justify-content:center; }
   .vc-bar{
     width:14px; border-radius:3px 3px 0 0; height:0%; min-height:2px;
@@ -300,10 +309,11 @@
   }
   .vc-bar-a{ background:var(--guard); }
   .vc-bar-b{ background:var(--qb); }
-  .vc-bar.pulsing{ animation: vc-bar-pulse .5s ease-out; }
+  .vc-bar.pulsing{ animation: vc-bar-pulse 1.8s ease-out; }
   @keyframes vc-bar-pulse{
     0%{ filter:brightness(1); }
-    35%{ filter:brightness(1.8); }
+    12%{ filter:brightness(1.8); }
+    50%{ filter:brightness(1.5); }
     100%{ filter:brightness(1); }
   }
   .vc-qlabel{ font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--text-dim); margin-top:6px; }
@@ -488,10 +498,10 @@
       <div class="voltage-chart">
         <div class="voltage-chart-label">Voltage by Quarter — the actual up-and-down, not the running total above</div>
         <div class="vc-bars-row">
-          <div class="vc-quarter"><div class="vc-bars"><div class="vc-bar vc-bar-a" id="vc-bar-a-1"></div><div class="vc-bar vc-bar-b" id="vc-bar-b-1"></div></div><div class="vc-qlabel">Q1</div></div>
-          <div class="vc-quarter"><div class="vc-bars"><div class="vc-bar vc-bar-a" id="vc-bar-a-2"></div><div class="vc-bar vc-bar-b" id="vc-bar-b-2"></div></div><div class="vc-qlabel">Q2</div></div>
-          <div class="vc-quarter"><div class="vc-bars"><div class="vc-bar vc-bar-a" id="vc-bar-a-3"></div><div class="vc-bar vc-bar-b" id="vc-bar-b-3"></div></div><div class="vc-qlabel">Q3</div></div>
-          <div class="vc-quarter"><div class="vc-bars"><div class="vc-bar vc-bar-a" id="vc-bar-a-4"></div><div class="vc-bar vc-bar-b" id="vc-bar-b-4"></div></div><div class="vc-qlabel">Q4</div></div>
+          <div class="vc-quarter"><div class="vc-callout" id="vc-callout-1"></div><div class="vc-bars"><div class="vc-bar vc-bar-a" id="vc-bar-a-1"></div><div class="vc-bar vc-bar-b" id="vc-bar-b-1"></div></div><div class="vc-qlabel">Q1</div></div>
+          <div class="vc-quarter"><div class="vc-callout" id="vc-callout-2"></div><div class="vc-bars"><div class="vc-bar vc-bar-a" id="vc-bar-a-2"></div><div class="vc-bar vc-bar-b" id="vc-bar-b-2"></div></div><div class="vc-qlabel">Q2</div></div>
+          <div class="vc-quarter"><div class="vc-callout" id="vc-callout-3"></div><div class="vc-bars"><div class="vc-bar vc-bar-a" id="vc-bar-a-3"></div><div class="vc-bar vc-bar-b" id="vc-bar-b-3"></div></div><div class="vc-qlabel">Q3</div></div>
+          <div class="vc-quarter"><div class="vc-callout" id="vc-callout-4"></div><div class="vc-bars"><div class="vc-bar vc-bar-a" id="vc-bar-a-4"></div><div class="vc-bar vc-bar-b" id="vc-bar-b-4"></div></div><div class="vc-qlabel">Q4</div></div>
         </div>
       </div>
     </div>
@@ -945,13 +955,24 @@ function startLivePlayback(match){
     // -- ties a signature play's real impact to the thing that's
     // actually moving (this quarter's bar, mid-climb) instead of a
     // disconnected badge over a number that doesn't move until the
-    // quarter ends.
+    // quarter ends. Held for ~1.8s, not a quick flash, so it's actually
+    // readable rather than just noticeable.
     if (!quarter || delta === null || delta === undefined) return;
     const barEl = document.getElementById(`vc-bar-${teamKey}-${quarter}`);
-    if (!barEl) return;
-    barEl.style.boxShadow = delta >= 0 ? '0 0 12px 3px var(--guard)' : '0 0 12px 3px var(--alert)';
-    barEl.classList.add('pulsing');
-    setTimeout(() => { barEl.classList.remove('pulsing'); barEl.style.boxShadow = 'none'; }, 500);
+    if (barEl){
+      barEl.style.boxShadow = delta >= 0 ? '0 0 14px 4px var(--guard)' : '0 0 14px 4px var(--alert)';
+      barEl.classList.add('pulsing');
+      clearTimeout(barEl._pulseTimer);
+      barEl._pulseTimer = setTimeout(() => { barEl.classList.remove('pulsing'); barEl.style.boxShadow = 'none'; }, 1800);
+    }
+    const callout = document.getElementById(`vc-callout-${quarter}`);
+    if (callout){
+      const teamName = teamKey === 'a' ? (teamA ? teamA.team_name : 'Team A') : (teamB ? teamB.team_name : 'Team B');
+      callout.textContent = `${teamName} ${delta >= 0 ? '+' : ''}${delta}`;
+      callout.className = 'vc-callout show ' + (delta >= 0 ? 'positive' : 'negative');
+      clearTimeout(callout._hideTimer);
+      callout._hideTimer = setTimeout(() => { callout.classList.remove('show'); }, 1800);
+    }
   }
 
   function delayFor(item){
