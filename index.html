@@ -71,9 +71,22 @@
      live collection data; nothing else about the layout needs to change.
   */
   .marquee-hero{
-    position:relative; overflow:hidden; padding: 56px 0 0;
-    -webkit-mask-image: linear-gradient(to bottom, transparent, black 8%, black 78%, transparent);
-    mask-image: linear-gradient(to bottom, transparent, black 8%, black 78%, transparent);
+    position:relative; padding: 56px 0 0;
+  }
+  /* Mask lives HERE, on the rows only -- not on .marquee-hero itself.
+     It was originally on the outer container, which also wraps
+     .hero-overlay (headline, paragraph, button, subtext). That meant
+     the fade's bottom zone was computed against the FULL combined
+     height of rows + all that text -- and since mobile's shorter text
+     reflows to a different total height than desktop's, the fade zone
+     landed in a different place on each: over empty space on desktop,
+     but directly over the button and part of the headline on mobile.
+     Scoping the mask to just the rows' own (fixed, predictable) height
+     means it can never touch hero-overlay's content on any screen size. */
+  .marquee-rows{
+    overflow:hidden;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
   }
   .marquee-row{
     display:flex; gap:14px; width:max-content; margin-bottom:14px;
@@ -206,10 +219,12 @@
 </nav>
 
 <div class="marquee-hero" id="marquee-hero" aria-hidden="true">
-  <div class="marquee-row" id="row-0"></div>
-  <div class="marquee-row reverse" id="row-1"></div>
-  <div class="marquee-row slow" id="row-2"></div>
-  <div class="marquee-row reverse slow" id="row-3"></div>
+  <div class="marquee-rows">
+    <div class="marquee-row" id="row-0"></div>
+    <div class="marquee-row reverse" id="row-1"></div>
+    <div class="marquee-row slow" id="row-2"></div>
+    <div class="marquee-row reverse slow" id="row-3"></div>
+  </div>
 
   <div class="hero-overlay">
     <span class="bolt-big">⚡</span>
