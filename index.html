@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Voltball — Coach Your Zappies (Redesign Mockup)</title>
+<title>Voltball — Coach Your Zappies</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
@@ -50,6 +50,19 @@
     padding: 10px 20px; font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:14px;
     cursor:pointer; letter-spacing:0.02em; white-space:nowrap;
   }
+  .wallet-btn.connected{
+    background:var(--panel-2); color:var(--guard); border:1px solid var(--guard);
+    display:flex; align-items:center; gap:8px; cursor:default;
+  }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--guard); box-shadow:0 0 8px var(--guard); }
+
+  .toast{
+    position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-10px); opacity:0;
+    background:var(--panel-2); border:1px solid var(--guard); color:var(--guard);
+    padding:12px 22px; border-radius:8px; font-size:13px; font-weight:500; z-index:100;
+    transition: all .3s ease; pointer-events:none;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
   main{ max-width: 900px; margin: 0 auto; padding: 0 24px; }
 
@@ -185,17 +198,17 @@
 <body>
 
 <nav>
-  <a class="wordmark" href="#"><span class="bolt">⚡</span><span class="display">VOLTBALL</span></a>
+  <a class="wordmark" href="./index.html"><span class="bolt">⚡</span><span class="display">VOLTBALL</span></a>
   <div class="nav-right">
     <div class="nav-links">
-      <a class="nav-link" href="#">Lineup</a>
-      <a class="nav-link" href="#">Scout</a>
-      <a class="nav-link" href="#">Free Agents</a>
-      <a class="nav-link" href="#">Standings</a>
-      <a class="nav-link" href="#">Bracket</a>
-      <a class="nav-link" href="#">Results</a>
+      <a class="nav-link" href="./lineup.html">Lineup</a>
+      <a class="nav-link" href="./scout.html">Scout</a>
+      <a class="nav-link" href="./free-agents.html">Free Agents</a>
+      <a class="nav-link" href="./standings.html">Standings</a>
+      <a class="nav-link" href="./bracket.html">Bracket</a>
+      <a class="nav-link" href="./results.html">Results</a>
     </div>
-    <button class="wallet-btn">Connect Wallet</button>
+    <button class="wallet-btn" id="wallet-btn" onclick="connectWallet()">Connect Wallet</button>
   </div>
 </nav>
 
@@ -213,8 +226,8 @@
     <span class="bolt-big">⚡</span>
     <h1 class="display">Coach your Zappies.<br>Own the season.</h1>
     <p>Voltball is a fantasy league built on your Zappies Reborn collection. Build an 8-player roster, set your formation and Tempo each week, and watch matches resolve quarter by quarter. A Hero NFT gives your team a real edge — but it's not required to play.</p>
-    <button class="cta-btn">Connect Wallet</button>
-    <div class="cta-sub">8+ roster-eligible Zappies in your wallet. A Hero NFT is a bonus, not a requirement.</div>
+    <button class="cta-btn" id="hero-cta" onclick="heroCTA()">Connect Wallet</button>
+    <div class="cta-sub" id="cta-sub">8+ roster-eligible Zappies in your wallet. A Hero NFT is a bonus, not a requirement.</div>
   </div>
 </div>
 
@@ -361,6 +374,84 @@ function toggleGuide(btn){
   document.querySelectorAll('.guide-item.open').forEach(el => el.classList.remove('open'));
   if (!wasOpen) item.classList.add('open');
 }
+</script>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { PeraWalletConnect } from "https://esm.sh/@perawallet/connect@1";
+
+const peraWallet = new PeraWalletConnect();
+let accountAddress = null;
+
+function toast(msg, isError=false){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = isError ? 'var(--alert)' : 'var(--guard)';
+  el.style.color = isError ? 'var(--alert)' : 'var(--guard)';
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), isError ? 4500 : 2600);
+}
+
+function setConnectedUI(address){
+  const navBtn = document.getElementById('wallet-btn');
+  navBtn.innerHTML = `<span class="dot"></span> ${address.slice(0,6)}…${address.slice(-4)}`;
+  navBtn.classList.add('connected');
+  navBtn.onclick = null;
+
+  const heroBtn = document.getElementById('hero-cta');
+  heroBtn.textContent = 'Continue to Lineup →';
+  document.getElementById('cta-sub').textContent = "You're connected — this takes you straight to your team.";
+}
+
+// The nav button always just connects (or does nothing once connected --
+// see setConnectedUI removing its onclick). The hero button's behavior
+// depends on connection state, so it's routed through this instead of
+// calling connectWallet() directly.
+window.heroCTA = function(){
+  if (accountAddress){
+    window.location.href = './lineup.html';
+    return;
+  }
+  connectWallet();
+};
+
+window.connectWallet = async function(){
+  const navBtn = document.getElementById('wallet-btn');
+  const heroBtn = document.getElementById('hero-cta');
+  const wasHeroLabel = heroBtn.textContent;
+  navBtn.textContent = "Connecting…";
+  navBtn.disabled = true;
+  heroBtn.textContent = "Connecting…";
+  heroBtn.disabled = true;
+  try {
+    const accounts = await peraWallet.connect();
+    accountAddress = accounts[0];
+    peraWallet.connector?.on("disconnect", () => location.reload());
+    // Reconnecting on lineup.html picks this session straight back up
+    // (Pera's session lives in this origin's storage, not tied to a
+    // single page) -- no re-prompt needed on arrival.
+    window.location.href = './lineup.html';
+  } catch (err) {
+    navBtn.textContent = "Connect Wallet";
+    navBtn.disabled = false;
+    heroBtn.textContent = wasHeroLabel;
+    heroBtn.disabled = false;
+    if (err?.data?.type !== "CONNECT_MODAL_CLOSED") toast("Wallet connect failed — see console.", true);
+    console.error(err);
+  }
+};
+
+// If a session already exists, reflect that here without forcing a
+// redirect -- someone landing on the home page (e.g. via the wordmark)
+// probably meant to land here, not get bounced straight to Lineup.
+peraWallet.reconnectSession().then((accounts) => {
+  if (accounts.length){
+    accountAddress = accounts[0];
+    peraWallet.connector?.on("disconnect", () => location.reload());
+    setConnectedUI(accountAddress);
+  }
+}).catch(() => {});
 </script>
 
 </body>
