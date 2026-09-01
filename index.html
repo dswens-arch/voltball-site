@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Voltball — Coach Your Zappies</title>
+<title>Voltball — Coach Your Zappies (Redesign Mockup)</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
@@ -22,7 +22,7 @@
   }
   *{box-sizing:border-box; margin:0; padding:0;}
   body{
-    background: radial-gradient(ellipse 1200px 600px at 50% -10%, #1a1030 0%, var(--bg) 55%);
+    background: var(--bg);
     color: var(--text);
     font-family: 'Inter', sans-serif;
     min-height:100vh;
@@ -31,82 +31,107 @@
   .mono{ font-family:'IBM Plex Mono', monospace; }
   .display{ font-family:'Chakra Petch', sans-serif; font-weight:700; letter-spacing:0.01em; }
 
+  /* ── Mockup-only notice — strip this whole block out before shipping ── */
+  .mockup-notice{
+    background:#1B1F32; border-bottom:1px solid var(--mid); color:var(--text-dim);
+    font-family:'IBM Plex Mono',monospace; font-size:12px; text-align:center; padding:10px 16px; line-height:1.6;
+  }
+  .mockup-notice b{ color:var(--mid); }
+
   nav{
     display:flex; align-items:center; justify-content:space-between;
     padding: 20px 32px; border-bottom:1px solid var(--line);
     position:sticky; top:0; background:rgba(11,13,20,0.85); backdrop-filter: blur(10px);
     z-index:50;
   }
-  .wordmark{
-    display:flex; align-items:center; gap:10px; font-size:20px; color:inherit; cursor:pointer; text-decoration:none;
-    position:relative; z-index:70;
-    /* Same reasoning as .hamburger-btn -- without an explicit position+
-       z-index, this is a normal in-flow element and gets buried behind
-       the full-screen mobile menu (.nav-links, z-index:60) once it opens. */
-  }
+  .wordmark{ display:flex; align-items:center; gap:10px; font-size:20px; color:inherit; text-decoration:none; }
   .wordmark .bolt{ color:var(--striker); font-size:22px; filter: drop-shadow(0 0 8px rgba(232,255,60,0.6)); }
   .nav-links{ display:flex; align-items:center; gap:22px; margin-right:20px; }
   .nav-link{
     font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:13px; letter-spacing:0.03em;
-    color:var(--text-dim); text-decoration:none; padding:6px 2px; border-bottom:2px solid transparent; transition: all .15s ease;
+    color:var(--text-dim); text-decoration:none; padding:6px 2px; border-bottom:2px solid transparent;
   }
-  .nav-link:hover{ color:var(--text); }
   .nav-right{ display:flex; align-items:center; }
   .wallet-btn{
     background: var(--striker); color:#0B0D14; border:none; border-radius:6px;
     padding: 10px 20px; font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:14px;
-    cursor:pointer; letter-spacing:0.02em; transition: all .15s ease; white-space:nowrap;
+    cursor:pointer; letter-spacing:0.02em; white-space:nowrap;
   }
-  .wallet-btn:hover{ box-shadow: 0 0 24px rgba(232,255,60,0.4); transform: translateY(-1px); }
-  .wallet-btn.connected{
-    background:var(--panel-2); color:var(--guard); border:1px solid var(--guard);
-    display:flex; align-items:center; gap:8px; cursor:default;
-  }
-  .wallet-btn.connected:hover{ box-shadow:none; transform:none; }
-  .dot{ width:7px; height:7px; border-radius:50%; background:var(--guard); box-shadow:0 0 8px var(--guard); }
-
-  .hamburger-btn{
-    display:none; flex-direction:column; justify-content:center; gap:5px;
-    width:32px; height:32px; background:none; border:none; cursor:pointer; padding:4px; flex-shrink:0;
-    position:relative; z-index:70;
-    /* Explicit position+z-index, higher than .nav-links (z-index:60) --
-       without this, the button is a normal in-flow element and paints
-       BEHIND any positioned sibling with a z-index regardless of DOM
-       nesting, so once the full-screen menu opens it visually buries
-       its own toggle/close button underneath itself. */
-  }
-  .hamburger-btn span{
-    display:block; width:100%; height:2px; background:var(--text); border-radius:2px;
-    transition: transform .2s ease, opacity .2s ease;
-  }
-  .hamburger-btn.open span:nth-child(1){ transform: translateY(7px) rotate(45deg); }
-  .hamburger-btn.open span:nth-child(2){ opacity:0; }
-  .hamburger-btn.open span:nth-child(3){ transform: translateY(-7px) rotate(-45deg); }
 
   main{ max-width: 900px; margin: 0 auto; padding: 0 24px; }
 
-  .hero{ text-align:center; padding: 90px 20px 50px; }
-  .hero .bolt-big{ font-size:44px; color:var(--striker); filter: drop-shadow(0 0 20px rgba(232,255,60,0.5)); margin-bottom:6px; display:block; }
-  .hero h1{ font-size:44px; line-height:1.15; margin-bottom:16px; }
-  .hero p{ color:var(--text-dim); font-size:16px; max-width:520px; margin:0 auto 36px; line-height:1.6; }
+  /* ── Marquee hero ──
+     Position-colored player-card tiles, four rows, alternating scroll
+     direction. This isn't decoration standing in for the pitch -- "an
+     enormous NFT roster to draft from" IS the pitch, so the hero shows
+     it directly instead of a static headline image. Placeholder tiles
+     use the site's own existing avatarFor() fallback (dicebear shapes,
+     same one lineup.html/results.html already fall back to) -- swap
+     src for real zappy-images/{asset_id}.jpg thumbnails once wired to
+     live collection data; nothing else about the layout needs to change.
+  */
+  .marquee-hero{
+    position:relative; overflow:hidden; padding: 56px 0 0;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 8%, black 78%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, black 8%, black 78%, transparent);
+  }
+  .marquee-row{
+    display:flex; gap:14px; width:max-content; margin-bottom:14px;
+    animation: scroll-left 62s linear infinite;
+  }
+  .marquee-row.reverse{ animation-name: scroll-right; }
+  .marquee-row.slow{ animation-duration: 84s; }
+  @keyframes scroll-left{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+  @keyframes scroll-right{ from{ transform:translateX(-50%); } to{ transform:translateX(0); } }
+  @media (prefers-reduced-motion: reduce){
+    .marquee-row{ animation:none; }
+  }
+  .zcard{
+    flex:0 0 auto; width:76px; height:76px; border-radius:10px;
+    background:var(--panel); border:1px solid var(--line); overflow:hidden;
+    position:relative; opacity:0.9;
+  }
+  .zcard img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .zcard.pos-qb{ border-top:2px solid var(--qb); }
+  .zcard.pos-striker{ border-top:2px solid var(--striker); }
+  .zcard.pos-mid{ border-top:2px solid var(--mid); }
+  .zcard.pos-guard{ border-top:2px solid var(--guard); }
+
+  .hero-overlay{
+    position:relative; z-index:5; text-align:center; padding: 40px 20px 50px;
+  }
+  /* Scrim is deliberately its own fixed-height layer, not hero-overlay's
+     own background -- a background on the whole container fades based
+     on the container's FULL height, which includes the button and
+     cta-sub text below. That meant the gradient's math had no idea
+     where the button actually sat, and dimmed it along with everything
+     else. Pinning this to a fixed 260px region at the top (roughly the
+     bolt+headline+paragraph) guarantees it fades to fully transparent
+     well before the button, regardless of how tall the text above it
+     happens to reflow on any given screen width. */
+  .hero-overlay::before{
+    content:""; position:absolute; top:0; left:50%; transform:translateX(-50%);
+    width:1100px; max-width:100%; height:260px; z-index:-1; pointer-events:none;
+    background: radial-gradient(ellipse 620px 200px at 50% 15%, rgba(11,13,20,0.95) 0%, rgba(11,13,20,0.8) 50%, transparent 100%);
+  }
+  .hero-overlay .bolt-big{ font-size:40px; color:var(--striker); filter: drop-shadow(0 0 20px rgba(232,255,60,0.5)); margin-bottom:6px; display:block; }
+  .hero-overlay h1{ font-size:44px; line-height:1.15; margin-bottom:16px; }
+  .hero-overlay p{ color:var(--text-dim); font-size:16px; max-width:520px; margin:0 auto 36px; line-height:1.6; }
 
   .cta-btn{
     background: linear-gradient(90deg, var(--striker), #c8e82e); color:#0B0D14; border:none;
     font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:16px; letter-spacing:0.03em;
-    padding: 16px 40px; border-radius:10px; cursor:pointer; transition: all .2s ease;
+    padding: 16px 40px; border-radius:10px; cursor:pointer;
     box-shadow: 0 0 28px rgba(232,255,60,0.3); text-decoration:none; display:inline-block;
   }
-  .cta-btn:hover{ transform: translateY(-2px); box-shadow: 0 0 40px rgba(232,255,60,0.5); }
   .cta-sub{ margin-top:14px; font-size:12px; color:var(--text-dim); }
 
-  .steps{ display:grid; grid-template-columns: repeat(2,1fr); gap:16px; margin: 30px 0 60px; }
+  .steps{ display:grid; grid-template-columns: repeat(2,1fr); gap:16px; margin: 44px 0 20px; }
   .step-card{
     background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:22px 18px;
     text-align:left; position:relative; overflow:hidden;
   }
-  .step-card .step-num{
-    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); margin-bottom:10px;
-  }
+  .step-card .step-num{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); margin-bottom:10px; }
   .step-card h3{ font-family:'Chakra Petch',sans-serif; font-size:16px; margin-bottom:8px; }
   .step-card p{ font-size:13px; color:var(--text-dim); line-height:1.55; }
   .step-card.qb{ border-top:2px solid var(--qb); }
@@ -114,91 +139,88 @@
   .step-card.mid{ border-top:2px solid var(--mid); }
   .step-card.guard{ border-top:2px solid var(--guard); }
 
+  /* ── Game guide accordion ── */
+  .guide{ margin: 56px 0 40px; }
+  .guide-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:16px; gap:16px; }
+  .guide-head h2{ font-family:'Chakra Petch',sans-serif; font-size:22px; }
+  .guide-head p{ color:var(--text-dim); font-size:13px; }
+  .guide-item{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; margin-bottom:10px; overflow:hidden;
+  }
+  .guide-item.qb{ border-left:2px solid var(--qb); }
+  .guide-item.striker{ border-left:2px solid var(--striker); }
+  .guide-item.mid{ border-left:2px solid var(--mid); }
+  .guide-item.guard{ border-left:2px solid var(--guard); }
+  .guide-trigger{
+    width:100%; background:none; border:none; color:var(--text); text-align:left; cursor:pointer;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:18px 20px; font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:15px;
+  }
+  .guide-trigger .chev{
+    flex:0 0 auto; width:18px; height:18px; color:var(--text-dim); transition: transform .2s ease;
+  }
+  .guide-item.open .guide-trigger .chev{ transform: rotate(180deg); }
+  .guide-panel{
+    display:grid; grid-template-rows: 0fr; transition: grid-template-rows .25s ease;
+  }
+  .guide-item.open .guide-panel{ grid-template-rows: 1fr; }
+  .guide-panel-inner{ overflow:hidden; }
+  .guide-panel p, .guide-panel ul{
+    padding: 0 20px 20px; color:var(--text-dim); font-size:14px; line-height:1.65; max-width:640px;
+  }
+  .guide-panel ul{ padding-left:38px; list-style:disc; }
+  .guide-panel li{ margin-bottom:6px; }
+
   .footnote{ text-align:center; color:var(--text-dim); font-size:12px; padding: 10px 0 30px; }
 
-  .toast{
-    position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-10px); opacity:0;
-    background:var(--panel-2); border:1px solid var(--guard); color:var(--guard);
-    padding:12px 22px; border-radius:8px; font-size:13px; font-weight:500; z-index:100;
-    transition: all .3s ease; pointer-events:none;
-  }
-  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
-
   @media (max-width: 700px){
-    nav{ padding: 14px 16px; backdrop-filter: none; }
-    /* backdrop-filter above is the actual fix, not cosmetic: a filter/
-       backdrop-filter on an ancestor makes it the CONTAINING BLOCK for
-       any position:fixed descendant per spec -- meaning .nav-links
-       below was sizing itself to nav's own small bounding box instead
-       of the real viewport, not rendering translucent at all. Only
-       needs disabling here, at the breakpoint where .nav-links actually
-       becomes position:fixed -- desktop keeps the frosted-glass header. */
-    .wordmark{ font-size:16px; gap:7px; }
-    .wordmark .bolt{ font-size:17px; }
-    .nav-right{ flex-direction:row; align-items:center; gap:12px; }
-    .hamburger-btn{ display:flex; }
-    .nav-links{
-      display:none; position:fixed; inset:0;
-      background: var(--bg);
-      flex-direction:column; align-items:flex-start; justify-content:flex-start;
-      padding:90px 28px 28px; gap:0; z-index:60;
-    }
-    .nav-links.open{ display:flex; }
-    .nav-link{
-      font-size:20px; padding:16px 0; width:100%;
-      border-bottom:1px solid var(--line); white-space:normal;
-    }
-    .wallet-btn{ font-size:12px; padding:8px 14px; }
-    .wallet-btn.connected{ font-size:11px; padding:7px 12px; }
-
-    .hero{ padding: 60px 12px 34px; }
-    .hero h1{ font-size:30px; }
-    .hero p{ font-size:14px; }
+    nav{ padding: 14px 16px; }
+    .nav-links{ display:none; }
+    .hero-overlay h1{ font-size:30px; }
+    .hero-overlay p{ font-size:14px; }
     .cta-btn{ padding:14px 30px; font-size:14px; }
     .steps{ grid-template-columns: 1fr; }
+    .zcard{ width:60px; height:60px; }
   }
 </style>
 </head>
 <body>
 
+<div class="mockup-notice">
+  <b>MOCKUP</b> — this is a design proposal, not the live page. Marquee loads real images from zappy_stats.json (included alongside this file); if that fetch fails, tiles fall back to placeholder avatars automatically.
+</div>
+
 <nav>
-  <a class="wordmark" href="./index.html"><span class="bolt">⚡</span><span class="display">VOLTBALL</span></a>
+  <a class="wordmark" href="#"><span class="bolt">⚡</span><span class="display">VOLTBALL</span></a>
   <div class="nav-right">
-    <div class="nav-links" id="nav-links">
-      <a class="nav-link" href="./lineup.html">Lineup</a>
-      <a class="nav-link" href="./scout.html">Scout</a>
-      <a class="nav-link" href="./free-agents.html">Free Agents</a>
-      <a class="nav-link" href="./standings.html">Standings</a>
-      <a class="nav-link" href="./bracket.html">Bracket</a>
-      <a class="nav-link" href="./results.html">Results</a>
+    <div class="nav-links">
+      <a class="nav-link" href="#">Lineup</a>
+      <a class="nav-link" href="#">Scout</a>
+      <a class="nav-link" href="#">Free Agents</a>
+      <a class="nav-link" href="#">Standings</a>
+      <a class="nav-link" href="#">Bracket</a>
+      <a class="nav-link" href="#">Results</a>
     </div>
-    <button class="wallet-btn" id="wallet-btn" onclick="connectWallet()">Connect Wallet</button>
-    <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMobileNav()" aria-label="Toggle menu" aria-expanded="false">
-      <span></span><span></span><span></span>
-    </button>
+    <button class="wallet-btn">Connect Wallet</button>
   </div>
 </nav>
-<script>
-  function toggleMobileNav(){
-    const links = document.getElementById('nav-links');
-    const btn = document.getElementById('hamburger-btn');
-    const isOpen = links.classList.toggle('open');
-    btn.classList.toggle('open', isOpen);
-    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    document.body.style.overflow = isOpen ? 'hidden' : '';
-  }
-  window.toggleMobileNav = toggleMobileNav;
-</script>
 
-<main>
-  <div class="hero">
+<div class="marquee-hero" id="marquee-hero" aria-hidden="true">
+  <div class="marquee-row" id="row-0"></div>
+  <div class="marquee-row reverse" id="row-1"></div>
+  <div class="marquee-row slow" id="row-2"></div>
+  <div class="marquee-row reverse slow" id="row-3"></div>
+
+  <div class="hero-overlay">
     <span class="bolt-big">⚡</span>
     <h1 class="display">Coach your Zappies.<br>Own the season.</h1>
     <p>Voltball is a fantasy league built on your Zappies Reborn collection. Build an 8-player roster, set your formation and Tempo each week, and watch matches resolve quarter by quarter. A Hero NFT gives your team a real edge — but it's not required to play.</p>
-    <button class="cta-btn" id="hero-cta" onclick="heroCTA()">Connect Wallet</button>
-    <div class="cta-sub" id="cta-sub">8+ roster-eligible Zappies in your wallet. A Hero NFT is a bonus, not a requirement.</div>
+    <button class="cta-btn">Connect Wallet</button>
+    <div class="cta-sub">8+ roster-eligible Zappies in your wallet. A Hero NFT is a bonus, not a requirement.</div>
   </div>
+</div>
 
+<main>
   <div class="steps">
     <div class="step-card qb">
       <div class="step-num">01</div>
@@ -222,85 +244,126 @@
     </div>
   </div>
 
+  <div class="guide">
+    <div class="guide-head">
+      <h2 class="display">The full rules</h2>
+      <p>Everything above, in more depth.</p>
+    </div>
+
+    <div class="guide-item qb">
+      <button class="guide-trigger" onclick="toggleGuide(this)">
+        Roster & positions
+        <svg class="chev" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="guide-panel"><div class="guide-panel-inner"><p>
+        Your roster is 8 Zappies you hold in your connected wallet, slotted into four positions each week: <b style="color:var(--qb)">QB</b>, <b style="color:var(--striker)">Striker</b>, <b style="color:var(--mid)">Mid</b>, and <b style="color:var(--guard)">Guard</b>. Each position weighs a different pair of stats — a Striker leans on VLT and SPK, a Mid on SPK and INS, a Guard on INS and VLT — so the same Zappy can be a star in one slot and an average bench piece in another. Who you put where is the first strategic call you make.
+      </p></div></div>
+    </div>
+
+    <div class="guide-item striker">
+      <button class="guide-trigger" onclick="toggleGuide(this)">
+        Formation & Tempo
+        <svg class="chev" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="guide-panel"><div class="guide-panel-inner"><p>
+        Your formation — OFFENSE, BALANCED, or DEFENSE — sets how many roster spots each position gets, shifting where your team's strength concentrates. Tempo is a separate dial from Controlled to Aggressive: a slower Tempo plays it safer, a faster one swings for bigger quarters at more risk. The two work together — an Aggressive Tempo on a Defense-heavy formation plays very differently than the same Tempo on Offense.
+      </p></div></div>
+    </div>
+
+    <div class="guide-item mid">
+      <button class="guide-trigger" onclick="toggleGuide(this)">
+        How a match resolves
+        <svg class="chev" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="guide-panel"><div class="guide-panel-inner">
+        <p>Voltball isn't scored like football — it's one continuous Voltage formula, resolved quarter by quarter, driven by your roster's real stats and your formation/Tempo choices. Every quarter gets commentary even in a quiet stretch, and matches play out live at a real pace rather than resolving instantly, so you can actually watch it happen.</p>
+        <ul>
+          <li>A Hero coach's signature play can swing a quarter directly — Feeding Frenzy, Chaos Mode, and others each work differently</li>
+          <li>No Hero on your team just means no coach bonus — your roster and choices still fully decide the game</li>
+          <li>The site shows a full quarter-by-quarter breakdown and recap once a match airs</li>
+        </ul>
+      </div></div>
+    </div>
+
+    <div class="guide-item guard">
+      <button class="guide-trigger" onclick="toggleGuide(this)">
+        Standings & playoffs
+        <svg class="chev" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="guide-panel"><div class="guide-panel-inner"><p>
+        Every result updates Standings — wins, losses, points for and against. At the end of the regular season, the top 4 teams seed into a bracket: 1 vs 4 and 2 vs 3 in the semifinal, both winners meet in the championship the following week. Win it, and you're the season's champion.
+      </p></div></div>
+    </div>
+  </div>
+
   <div class="footnote">Already registered? Connecting your wallet takes you straight to your lineup.</div>
 </main>
 
-<div class="toast" id="toast"></div>
-
-<script type="module">
-import { PeraWalletConnect } from "https://esm.sh/@perawallet/connect@1";
-
-const peraWallet = new PeraWalletConnect();
-let accountAddress = null;
-
-function toast(msg, isError=false){
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.style.borderColor = isError ? 'var(--alert)' : 'var(--guard)';
-  el.style.color = isError ? 'var(--alert)' : 'var(--guard)';
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), isError ? 4500 : 2600);
+<script>
+// Real Zappy images, loaded the same way the rest of the site already
+// does (fetch zappy_stats.json once, keyed by asset_id -- see the
+// caching comment in lineup.html). Falls back to the placeholder
+// generator if the file can't be loaded at all (e.g. this mockup opened
+// standalone, without zappy_stats.json/zappy-images/ sitting next to it
+// the way they do in the real site repo) -- same shape as the multi-
+// stage image fallback already used elsewhere on the site, just one
+// stage instead of an IPFS-gateway chain, since these are self-hosted now.
+function avatarFor(seed, size=200){
+  return `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(seed)}&size=${size}`;
 }
 
-function setConnectedUI(address){
-  const navBtn = document.getElementById('wallet-btn');
-  navBtn.innerHTML = `<span class="dot"></span> ${address.slice(0,6)}…${address.slice(-4)}`;
-  navBtn.classList.add('connected');
-  navBtn.onclick = null;
+const POSITIONS = ['pos-qb','pos-striker','pos-mid','pos-guard'];
+const TILES_PER_ROW = 20; // duplicated x2 in the DOM for a seamless loop
 
-  const heroBtn = document.getElementById('hero-cta');
-  heroBtn.textContent = 'Continue to Lineup →';
-  document.getElementById('cta-sub').textContent = "You're connected — this takes you straight to your team.";
+// Picks TILES_PER_ROW real entries per row, offset per row so the four
+// rows don't repeat the same faces -- falls back to placeholder seeds
+// if zappyPool is empty (fetch failed).
+function pickRowEntries(zappyPool, offset, count){
+  if (!zappyPool.length){
+    return Array.from({length: count}, (_, i) => ({ name: `zappy-${offset + i}`, image_url: null }));
+  }
+  const out = [];
+  for (let i = 0; i < count; i++) out.push(zappyPool[(offset + i * 37) % zappyPool.length]);
+  return out;
 }
 
-// The nav button always just connects (or does nothing once connected --
-// see setConnectedUI removing its onclick). The hero button's behavior
-// depends on connection state, so it's routed through this instead of
-// calling connectWallet() directly.
-window.heroCTA = function(){
-  if (accountAddress){
-    window.location.href = './lineup.html';
-    return;
+function buildRow(rowEl, entries, seedOffset){
+  let html = '';
+  for (let pass = 0; pass < 2; pass++){ // duplicate set = seamless -50% loop
+    entries.forEach((z, i) => {
+      const pos = POSITIONS[(seedOffset + i) % POSITIONS.length];
+      const realSrc = z.image_url;
+      const fallbackSrc = avatarFor(z.name, 120);
+      const src = realSrc || fallbackSrc;
+      html += `<div class="zcard ${pos}"><img src="${src}" alt="${z.name}" loading="lazy" data-fallback="${fallbackSrc}" onerror="this.onerror=null; this.src=this.dataset.fallback;"></div>`;
+    });
   }
-  connectWallet();
-};
+  rowEl.innerHTML = html;
+}
 
-window.connectWallet = async function(){
-  const navBtn = document.getElementById('wallet-btn');
-  const heroBtn = document.getElementById('hero-cta');
-  const wasHeroLabel = heroBtn.textContent;
-  navBtn.textContent = "Connecting…";
-  navBtn.disabled = true;
-  heroBtn.textContent = "Connecting…";
-  heroBtn.disabled = true;
-  try {
-    const accounts = await peraWallet.connect();
-    accountAddress = accounts[0];
-    peraWallet.connector?.on("disconnect", () => location.reload());
-    // Reconnecting on lineup.html picks this session straight back up
-    // (Pera's session lives in this origin's storage, not tied to a
-    // single page) -- no re-prompt needed on arrival.
-    window.location.href = './lineup.html';
-  } catch (err) {
-    navBtn.textContent = "Connect Wallet";
-    navBtn.disabled = false;
-    heroBtn.textContent = wasHeroLabel;
-    heroBtn.disabled = false;
-    if (err?.data?.type !== "CONNECT_MODAL_CLOSED") toast("Wallet connect failed — see console.", true);
-    console.error(err);
-  }
-};
+fetch('./zappy_stats.json')
+  .then(r => r.ok ? r.json() : Promise.reject(new Error('zappy_stats.json not found')))
+  .then(data => Object.values(data))
+  .catch(err => {
+    console.warn('Marquee: falling back to placeholder avatars —', err.message);
+    return [];
+  })
+  .then(zappyPool => {
+    buildRow(document.getElementById('row-0'), pickRowEntries(zappyPool, 0,   TILES_PER_ROW), 0);
+    buildRow(document.getElementById('row-1'), pickRowEntries(zappyPool, 90,  TILES_PER_ROW), 1);
+    buildRow(document.getElementById('row-2'), pickRowEntries(zappyPool, 180, TILES_PER_ROW), 2);
+    buildRow(document.getElementById('row-3'), pickRowEntries(zappyPool, 270, TILES_PER_ROW), 3);
+  });
 
-// If a session already exists, reflect that here without forcing a
-// redirect -- someone landing on the home page (e.g. via the wordmark)
-// probably meant to land here, not get bounced straight to Lineup.
-peraWallet.reconnectSession().then((accounts) => {
-  if (accounts.length){
-    accountAddress = accounts[0];
-    peraWallet.connector?.on("disconnect", () => location.reload());
-    setConnectedUI(accountAddress);
-  }
-}).catch(() => {});
+// Single-open accordion -- opening one closes any other, so the guide
+// stays a quick scan rather than a wall of expanded text.
+function toggleGuide(btn){
+  const item = btn.closest('.guide-item');
+  const wasOpen = item.classList.contains('open');
+  document.querySelectorAll('.guide-item.open').forEach(el => el.classList.remove('open'));
+  if (!wasOpen) item.classList.add('open');
+}
 </script>
+
 </body>
 </html>
