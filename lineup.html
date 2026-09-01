@@ -588,6 +588,7 @@ let accountAddress = null;
 let currentTeam = null;      // from get-my-team
 let currentSeason = null;    // from get-my-team
 let seasonNotStarted = false; // true when status is 'upcoming' — roster/formation/tempo browsable, lock-in disabled
+let waitingOnPreviousWeek = false; // true when current_week's matches haven't ALL finished airing yet — see last_completed_week
 let zappyStats = null;       // loaded once from zappy_stats.json
 let heldZappies = [];        // this wallet's real roster-eligible Zappies, with real stats
 let injuredAssetIds = new Set();  // asset_ids unavailable THIS week — see checkInjuries()
@@ -760,6 +761,14 @@ async function fetchHeldZappies(address){
 // standings/lineups) — asset_ids with out_week == current_week for
 // THIS team are unavailable this week, flat 1-week duration.
 async function checkInjuries(){
+  if (waitingOnPreviousWeek){
+    // Don't even query -- this week's injury rows may already exist
+    // (some matches this week have aired), but showing them before
+    // EVERY match has aired would reveal that a specific match already
+    // happened ahead of the rest of the slate. See the gate set above.
+    injuredAssetIds = new Set();
+    return;
+  }
   try {
     const rows = await supabaseGet(`voltball_injuries?team_id=eq.${currentTeam.id}&out_week=eq.${currentSeason.current_week}&select=asset_id`);
     injuredAssetIds = new Set((rows ?? []).map(r => r.asset_id));
@@ -962,6 +971,26 @@ async function loadMyTeamAndRoster(){
     banner.id = 'preview-banner';
     banner.style.cssText = 'background:var(--panel); border:1px solid var(--qb); border-radius:8px; padding:12px 16px; margin-bottom:24px; font-size:12px; color:var(--text-dim);';
     banner.innerHTML = `<b style="color:var(--qb);">Preview only</b> — season hasn't started yet. Browse your roster and build a lineup below, but it can't be locked in until then.`;
+    document.getElementById('app').prepend(banner);
+  }
+
+  // current_week advances the instant the bot resolves a week --
+  // hours before that week's staggered broadcasts have all actually
+  // aired. Without this check, next week's lineup form (and injury
+  // reports) would unlock the moment resolution runs, well before the
+  // full slate has played out. last_completed_week only advances once
+  // every match in a week has posted its recap (see post_ready_recaps
+  // in voltball_cog.py) -- same gate the site's standings/results pages
+  // already use, just applied here too. Week 1 has no previous week to
+  // wait on, so it's never gated.
+  waitingOnPreviousWeek = !seasonNotStarted
+    && currentSeason.current_week > 1
+    && (currentSeason.last_completed_week ?? 0) < currentSeason.current_week - 1;
+  if (waitingOnPreviousWeek){
+    const banner = document.createElement('div');
+    banner.id = 'waiting-banner';
+    banner.style.cssText = 'background:var(--panel); border:1px solid var(--qb); border-radius:8px; padding:12px 16px; margin-bottom:24px; font-size:12px; color:var(--text-dim);';
+    banner.innerHTML = `<b style="color:var(--qb);">Hold on</b> — last week's games are still airing. You can browse and build a lineup below, but it can't be locked in (and injury reports aren't shown yet) until every match finishes.`;
     document.getElementById('app').prepend(banner);
   }
 
@@ -1292,6 +1321,10 @@ function renderSubmit(){
     btn.classList.remove('ready');
     btn.disabled = true;
     btn.textContent = 'Season Not Started';
+  } else if (waitingOnPreviousWeek){
+    btn.classList.remove('ready');
+    btn.disabled = true;
+    btn.textContent = 'Last Week Still Airing';
   } else {
     btn.classList.toggle('ready', filled === total);
   }
@@ -1309,6 +1342,10 @@ function render(){
 window.lockIn = async function(){
   if (seasonNotStarted){
     toast("Season hasn't started yet — this is preview only.", true);
+    return;
+  }
+  if (waitingOnPreviousWeek){
+    toast("Last week's games are still airing — check back once they're done.", true);
     return;
   }
   const total = Object.values(FORMATIONS[formation]).reduce((a,b)=>a+b,0);
