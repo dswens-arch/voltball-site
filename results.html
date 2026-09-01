@@ -1190,7 +1190,13 @@ async function init(){
     document.getElementById('page-sub').innerHTML = `${season.name || 'Voltball'} ${pill}`;
 
     const [matches, teams] = await Promise.all([
-      supabaseGet(`voltball_matches?season_id=eq.${season.id}&select=*&order=week_number.desc`),
+      // Secondary sort by playback_starts_at (ascending) matters: without
+      // it, matches within the same week come back in whatever order the
+      // database happens to return them (insertion order), unrelated to
+      // when they actually kicked off. First game played should render
+      // first, last game played last -- this is the only thing that
+      // guarantees that.
+      supabaseGet(`voltball_matches?season_id=eq.${season.id}&select=*&order=week_number.desc,playback_starts_at.asc`),
       supabaseGet(`voltball_teams_public?season_id=eq.${season.id}&select=*`),
     ]);
 
