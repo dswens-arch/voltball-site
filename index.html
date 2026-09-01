@@ -66,29 +66,28 @@
   .marquee-hero{
     position:relative; padding: 56px 0 0;
   }
-  /* Mask lives HERE, on the rows only -- not on .marquee-hero itself.
-     It was originally on the outer container, which also wraps
-     .hero-overlay (headline, paragraph, button, subtext). That meant
-     the fade's bottom zone was computed against the FULL combined
-     height of rows + all that text -- and since mobile's shorter text
-     reflows to a different total height than desktop's, the fade zone
-     landed in a different place on each: over empty space on desktop,
-     but directly over the button and part of the headline on mobile.
-     Scoping the mask to just the rows' own (fixed, predictable) height
-     means it can never touch hero-overlay's content on any screen size. */
+  /* Fade lives HERE, on the rows only -- not on .marquee-hero itself
+     (see the note above about why it can't touch hero-overlay's
+     content). Originally built with mask-image/-webkit-mask-image,
+     but that combined badly with the animated rows on mobile Safari --
+     not just a repaint bug (worked around with a compositing hint
+     below), but the masked box itself was sizing unpredictably, which
+     is what caused the large empty gap under the tiles. Plain gradient
+     overlay divs produce the same visual fade without touching CSS
+     Masking at all, sidestepping that whole class of bug. */
   .marquee-rows{
-    overflow:hidden;
-    -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
-    mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+    position:relative; overflow:hidden;
   }
+  .marquee-fade-top, .marquee-fade-bottom{
+    position:absolute; left:0; right:0; pointer-events:none; z-index:2;
+  }
+  .marquee-fade-top{ top:0; height:50px; background:linear-gradient(to bottom, var(--bg), transparent); }
+  .marquee-fade-bottom{ bottom:0; height:90px; background:linear-gradient(to top, var(--bg), transparent); }
   .marquee-row{
     display:flex; gap:14px; width:max-content; margin-bottom:14px;
     animation: scroll-left 62s linear infinite;
-    /* iOS Safari has a known bug where an animated element sitting
-       under a mask-image ancestor (.marquee-rows above) silently
-       fails to repaint on scroll/frame updates -- the animation is
-       technically running but the screen never redraws, so it just
-       looks frozen. Forcing its own compositing layer works around it. */
+    /* Standard compositing hint for a continuously-animated transform --
+       keeps it on the GPU rather than repainting every frame. */
     will-change: transform;
     -webkit-transform: translateZ(0);
     transform: translateZ(0);
@@ -206,6 +205,8 @@
     <div class="marquee-row reverse" id="row-1"></div>
     <div class="marquee-row slow" id="row-2"></div>
     <div class="marquee-row reverse slow" id="row-3"></div>
+    <div class="marquee-fade-top"></div>
+    <div class="marquee-fade-bottom"></div>
   </div>
 
   <div class="hero-overlay">
