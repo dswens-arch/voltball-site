@@ -160,6 +160,11 @@
     background:var(--striker); border-radius:4px; padding:1px 6px; margin-left:6px; vertical-align:middle;
   }
   .tbd-label{ font-size:12px; color:var(--text-dim); font-style:italic; }
+  .still-airing-badge{
+    font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:11px; letter-spacing:0.05em;
+    text-transform:uppercase; color:var(--alert); background:rgba(255,61,110,0.12);
+    padding:6px 14px; border-radius:20px; display:inline-block; margin:6px auto 0; text-align:center;
+  }
 
   .toast{
     position:fixed; top:80px; left:50%; transform:translateX(-50%) translateY(-10px); opacity:0;
@@ -403,7 +408,13 @@ function renderMatchCard(pairing, match, teamsById){
 
   const teamA = teamsById[pairing.team_a_id];
   const teamB = teamsById[pairing.team_b_id];
-  const resolved = !!match;
+  // A match row exists the instant /voltball_resolve_week runs -- hours
+  // before it actually airs, since kickoffs/recaps are staggered across
+  // the day now. "Resolved" for display purposes means the recap has
+  // actually posted, same gate results.html and standings.html already
+  // use; otherwise every bracket result was showing the moment the week
+  // resolved, regardless of broadcast timing.
+  const resolved = !!match && !!match.recap_posted_at;
   const aWon = resolved && match.winner_team_id === pairing.team_a_id;
   const bWon = resolved && match.winner_team_id === pairing.team_b_id;
 
@@ -423,10 +434,12 @@ function renderMatchCard(pairing, match, teamsById){
 
   const scoreA = resolved ? (pairing.team_a_id === match.team_a_id ? match.team_a_score : match.team_b_score) : null;
   const scoreB = resolved ? (pairing.team_b_id === match.team_a_id ? match.team_a_score : match.team_b_score) : null;
+  const stillAiring = !!match && !match.recap_posted_at;
 
   return `<div class="match-card">
     ${sideHtml(teamA, pairing.team_a_id, aWon, scoreA)}
     ${sideHtml(teamB, pairing.team_b_id, bWon, scoreB)}
+    ${stillAiring ? `<div class="still-airing-badge">🔴 LIVE — SCORE HIDDEN</div>` : ''}
   </div>`;
 }
 
@@ -502,7 +515,12 @@ async function init(){
     const finalGrid = document.getElementById('final-col');
     finalGrid.innerHTML = `<div class="match-block"><div class="match-label">Championship</div>${renderMatchCard(finalPairing, finalMatch, teamsById)}</div>`;
 
-    if (finalMatch){
+    // Same gate as renderMatchCard's `resolved` -- the championship
+    // match row exists (and has a winner_team_id) the instant that
+    // week resolves, hours before its recap actually posts. Without
+    // this check the champion banner would crown the winner before
+    // anyone watching could see the game itself.
+    if (finalMatch && finalMatch.recap_posted_at){
       const championTeam = teamsById[finalMatch.winner_team_id];
       if (championTeam){
         document.getElementById('champion-name').textContent = championTeam.team_name;
