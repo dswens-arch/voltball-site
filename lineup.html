@@ -111,6 +111,35 @@
   .signature-card.no-coach{ border-left-color:var(--line); }
   .signature-card.no-coach .signature-label{ color:var(--text-dim); }
 
+  .schedule-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; margin:0 0 28px; overflow:hidden;
+  }
+  .schedule-toggle{
+    width:100%; background:none; border:none; color:var(--text); text-align:left; cursor:pointer;
+    display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 18px;
+    font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:14px;
+  }
+  .schedule-toggle .chev{ color:var(--text-dim); font-size:12px; transition: transform .2s ease; }
+  .schedule-card.open .schedule-toggle .chev{ transform: rotate(180deg); }
+  .schedule-body{ display:grid; grid-template-rows:0fr; transition: grid-template-rows .25s ease; }
+  .schedule-card.open .schedule-body{ grid-template-rows:1fr; }
+  .schedule-body-inner{ overflow:hidden; }
+  .schedule-row{
+    display:flex; align-items:center; gap:12px; padding:10px 18px;
+    border-top:1px solid var(--line); font-size:13px;
+  }
+  .schedule-row.current{ background:rgba(255,159,64,0.07); }
+  .schedule-row .week-num{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); width:48px; flex-shrink:0;
+  }
+  .schedule-row .opp{ flex:1; color:var(--text-dim); }
+  .schedule-row .opp b{ color:var(--text); font-weight:600; }
+  .schedule-row .result{ font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:12px; white-space:nowrap; flex-shrink:0; }
+  .schedule-row .result.win{ color:var(--guard); }
+  .schedule-row .result.loss{ color:var(--alert); }
+  .schedule-row .result.live{ color:var(--alert); }
+  .schedule-row .result.tbd{ color:var(--text-dim); font-weight:500; }
+
   .repeat-bar{
     display:flex; align-items:center; gap:12px; background:var(--panel); border:1px solid var(--line);
     border-radius:10px; padding:12px 16px; margin-bottom:28px;
@@ -419,6 +448,16 @@
     <div class="signature-card" id="signature-card">
       <div class="signature-label" id="signature-label">—</div>
       <div class="signature-desc" id="signature-desc">—</div>
+    </div>
+
+    <div class="schedule-card" id="schedule-card">
+      <button class="schedule-toggle" onclick="toggleSchedule()">
+        <span>📅 Season Schedule</span>
+        <span class="chev">▼</span>
+      </button>
+      <div class="schedule-body"><div class="schedule-body-inner" id="schedule-body-inner">
+        <div style="padding:14px 18px; color:var(--text-dim); font-size:12px;">Loading…</div>
+      </div></div>
     </div>
 
     <div class="repeat-bar" id="repeat-bar" style="display:none;">
@@ -775,6 +814,85 @@ async function checkInjuries(){
   } catch (err) {
     console.error("Couldn't check injury status (non-fatal):", err);
     injuredAssetIds = new Set();
+  }
+}
+
+// ── Season Schedule ──
+// Lazy-loaded on first expand, not on page load -- every other section
+// on this page is about THIS week; the full schedule is a reference
+// someone checks occasionally, not something worth a query on every visit.
+let scheduleLoaded = false;
+
+function toggleSchedule(){
+  const card = document.getElementById('schedule-card');
+  const nowOpen = card.classList.toggle('open');
+  if (nowOpen && !scheduleLoaded) loadSeasonSchedule();
+}
+window.toggleSchedule = toggleSchedule;
+
+// voltball_schedule is the full round-robin generated once by
+// /voltball_season_start -- every week this team plays, including
+// playoffs. voltball_matches is only rows that have actually resolved.
+// A row existing in voltball_matches does NOT mean it's aired -- same
+// recap_posted_at gate every other page on this site already uses
+// (results.html, standings.html, bracket.html). Getting this wrong
+// here would mean a coach could see their OWN upcoming result early
+// just by opening their own lineup page, which defeats the entire
+// point of staggering broadcasts through the day.
+async function loadSeasonSchedule(){
+  const body = document.getElementById('schedule-body-inner');
+  try {
+    const [scheduleRows, matchRows, teams] = await Promise.all([
+      supabaseGet(`voltball_schedule?season_id=eq.${currentSeason.id}&or=(team_a_id.eq.${currentTeam.id},team_b_id.eq.${currentTeam.id})&order=week_number.asc&select=*`),
+      supabaseGet(`voltball_matches?season_id=eq.${currentSeason.id}&or=(team_a_id.eq.${currentTeam.id},team_b_id.eq.${currentTeam.id})&select=*`),
+      supabaseGet(`voltball_teams_public?season_id=eq.${currentSeason.id}&select=*`),
+    ]);
+
+    if (!scheduleRows.length){
+      body.innerHTML = `<div style="padding:14px 18px; color:var(--text-dim); font-size:12px;">Schedule isn't locked in yet — check back once the season starts.</div>`;
+      scheduleLoaded = true;
+      return;
+    }
+
+    const teamsById = {};
+    for (const t of teams) teamsById[t.id] = t;
+    const matchByWeek = {};
+    for (const m of matchRows) matchByWeek[m.week_number] = m;
+
+    body.innerHTML = scheduleRows.map(row => {
+      const oppId = row.team_a_id === currentTeam.id ? row.team_b_id : row.team_a_id;
+      const opp = teamsById[oppId];
+      const oppName = opp ? opp.team_name : 'Unknown team';
+      const match = matchByWeek[row.week_number];
+      const isCurrent = row.week_number === currentSeason.current_week;
+
+      let resultHtml;
+      if (!match){
+        resultHtml = `<span class="result tbd">Not yet played</span>`;
+      } else if (!match.recap_posted_at){
+        resultHtml = `<span class="result live">🔴 LIVE</span>`;
+      } else {
+        const myScore = row.team_a_id === match.team_a_id ? match.team_a_score : match.team_b_score;
+        const oppScore = row.team_a_id === match.team_a_id ? match.team_b_score : match.team_a_score;
+        const won = match.winner_team_id === currentTeam.id;
+        resultHtml = `<span class="result ${won ? 'win' : 'loss'}">${won ? 'W' : 'L'} ${Math.round(myScore)}\u2013${Math.round(oppScore)}</span>`;
+      }
+
+      const label = row.is_playoff
+        ? (row.week_number === currentSeason.week_count + 1 ? 'Semi' : 'Final')
+        : `Wk ${row.week_number}`;
+
+      return `<div class="schedule-row ${isCurrent ? 'current' : ''}">
+        <span class="week-num">${label}</span>
+        <span class="opp">vs <b>${oppName}</b></span>
+        ${resultHtml}
+      </div>`;
+    }).join('');
+
+    scheduleLoaded = true;
+  } catch (err) {
+    console.error("Couldn't load season schedule:", err);
+    body.innerHTML = `<div style="padding:14px 18px; color:var(--alert); font-size:12px;">Couldn't load the schedule — try reopening this.</div>`;
   }
 }
 
