@@ -443,6 +443,7 @@
           <div class="sub">Coached by <b id="coach-name-display">—</b> · Week <b id="week-display">—</b> <span id="locked-badge" style="display:none;"></span></div>
         </div>
       </div>
+      <button onclick="refreshMyTeam()" title="Pull your team fresh instead of using the cached copy" style="background:none; border:1px solid var(--line); color:var(--text-dim); border-radius:6px; padding:6px 10px; font-size:11px; cursor:pointer; font-family:'IBM Plex Mono',monospace; flex-shrink:0;">↻ Refresh</button>
     </div>
 
     <div class="signature-card" id="signature-card">
@@ -1074,6 +1075,19 @@ function setCachedTeam(address, team){
 function clearCachedTeam(address){
   try { localStorage.removeItem(teamCacheKey(address)); } catch (err) { /* non-fatal */ }
 }
+
+// Bypasses the 7-day cache entirely -- for when the underlying team
+// data changed server-side without going through the normal write
+// path (e.g. a manual Supabase fix for a registration bug), which the
+// cache has no way to detect on its own. Re-runs the exact same load
+// flow as a page load, just guaranteed to hit get-my-team fresh.
+async function refreshMyTeam(){
+  if (!accountAddress){ toast("Connect your wallet first.", true); return; }
+  clearCachedTeam(accountAddress);
+  toast("Refreshing your team…");
+  await loadMyTeamAndRoster();
+}
+window.refreshMyTeam = refreshMyTeam;
 
 // Always a fresh, unsigned public read -- see the note above on why
 // current_week specifically is never cached.
