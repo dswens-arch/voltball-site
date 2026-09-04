@@ -660,11 +660,22 @@ function statusLine(msg){
 // ── Signing helper: builds a canonical message, signs it, returns the
 // three fields every edge function expects appended to a payload. Must
 // stay byte-for-byte in sync with each function's canonicalMessage(). ──
+//
+// verifySignature: true (3rd arg) matters for rekeyed accounts: without
+// it, Pera tries to sign as the connected address itself and throws
+// "Signer cannot sign arbitrary data" for any account that's been
+// rekeyed to a different signer (a real report -- see chat). With it,
+// Pera auto-detects the account's auth-addr and signs with that
+// instead. The backend edge functions verify against the SAME
+// auth-addr via their own resolveSigningAddress() -- both sides need
+// to agree on which address actually produced the signature, or a
+// genuine signature from a rekeyed account fails verification anyway.
 async function signPayload(canonicalObj, humanMessage){
   const message = JSON.stringify(canonicalObj);
   const signedData = await peraWallet.signData(
     [{ data: new TextEncoder().encode(message), message: humanMessage }],
-    accountAddress
+    accountAddress,
+    true
   );
   return btoa(String.fromCharCode(...signedData[0]));
 }
