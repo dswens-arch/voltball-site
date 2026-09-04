@@ -1170,6 +1170,7 @@ if (new URLSearchParams(location.search).get('debug') === '1'){
   panel.style.cssText = 'position:fixed; bottom:0; left:0; right:0; max-height:60vh; overflow:auto; background:#000; color:#0f0; font-family:monospace; font-size:11px; padding:12px; z-index:9999; border-top:2px solid var(--striker);';
   panel.innerHTML = `
     <button onclick="window.debugTestTxnSign()" style="background:var(--striker); color:#000; border:none; padding:10px 16px; border-radius:6px; font-weight:700; margin-bottom:10px; width:100%;">🔧 Test Transaction Signing</button>
+    <button onclick="window.debugTestGetMyTeam()" style="background:var(--guard); color:#000; border:none; padding:10px 16px; border-radius:6px; font-weight:700; margin-bottom:10px; width:100%;">🔧 Test Full getMyTeam (sign + server)</button>
     <pre id="debug-output" style="white-space:pre-wrap; word-break:break-all;">Tap the button above after connecting your wallet.</pre>
   `;
   document.body.appendChild(panel);
@@ -1193,6 +1194,25 @@ window.debugTestTxnSign = async function(){
     debugLog(`FAILED: ${err?.message || err}`);
     debugLog(`Full error: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`);
     throw err;
+  }
+};
+
+// Tests the FULL getMyTeam round trip (sign + send to server + parse
+// response) -- not just the isolated signing step above. "Couldn't
+// check your team" in the normal UI hides the actual server response
+// behind a generic message; this shows the real one.
+window.debugTestGetMyTeam = async function(){
+  const out = document.getElementById('debug-output');
+  if (out) out.textContent = 'Running...';
+  debugLog(`accountAddress: ${accountAddress} (${typeof accountAddress})`);
+  debugLog(`GUILD_ID: ${GUILD_ID}`);
+  try {
+    const { status, result } = await getMyTeam();
+    debugLog(`HTTP status: ${status}`);
+    debugLog(`Response body: ${JSON.stringify(result)}`);
+  } catch (err) {
+    debugLog(`THREW (never reached the server, or fetch itself failed): ${err?.message || err}`);
+    debugLog(`Full error: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`);
   }
 };
 
