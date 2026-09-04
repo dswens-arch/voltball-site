@@ -755,6 +755,63 @@ async function signPayload(canonicalObj, humanMessage){
   return btoa(String.fromCharCode(...signedData[0]));
 }
 
+// ── Transaction-based proof of wallet ownership (registration only, for now) ──
+//
+// Deliberately a DIFFERENT mechanism from signPayload() above, not a
+// tweak to it. signData (arbitrary data signing) is a newer, wallet-
+// specific feature -- its rekey support needs a newer Pera SDK build
+// that's proven impossible to load reliably via esm.sh tonight (broke
+// Connect Wallet entirely, twice, on two different pin attempts).
+// Transaction signing has NO such problem: rekeying is core Algorand
+// PROTOCOL behavior, not an opt-in wallet feature -- every wallet,
+// every version, has always had to sign transactions correctly for a
+// rekeyed account, because that's just how Algorand works. This uses
+// peraWallet.signTransaction() (stable since Pera Connect v1.0) on
+// the SAME import that's already confirmed working tonight -- this
+// code doesn't touch that import at all, so it can't cause the kind
+// of regression the last two attempts did.
+//
+// The transaction itself: a real, harmless 0-ALGO self-payment (from
+// = to = the connected wallet). Moves no funds, costs the real
+// network minimum fee (currently ~0.001 ALGO). The canonical payload
+// goes in the transaction's note field. Verification server-side is a
+// real broadcast to algod, not custom signature-checking code -- if
+// algod accepts it, the signature (and rekey authority, if any) was
+// cryptographically valid, because that's algod's own core consensus
+// job, not something reimplemented by hand here.
+async function fetchSuggestedParams(){
+  const res = await fetch('https://mainnet-api.algonode.cloud/v2/transactions/params');
+  if (!res.ok) throw new Error(`Couldn't fetch network params: ${res.status}`);
+  const data = await res.json();
+  return {
+    fee: data['fee'] || 1000,
+    firstRound: data['last-round'],
+    lastRound: data['last-round'] + 1000,
+    genesisID: data['genesis-id'],
+    genesisHash: data['genesis-hash'],
+    flatFee: true,
+    minFee: data['min-fee'] || 1000,
+  };
+}
+
+async function signPayloadViaTransaction(canonicalObj){
+  const algosdkMod = await import("https://esm.sh/algosdk@3");
+  const algosdk = algosdkMod.default ?? algosdkMod;
+  const params = await fetchSuggestedParams();
+  const noteBytes = new TextEncoder().encode(JSON.stringify(canonicalObj));
+
+  const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+    from: accountAddress,
+    to: accountAddress,
+    amount: 0,
+    note: noteBytes,
+    suggestedParams: params,
+  });
+
+  const signedTxns = await peraWallet.signTransaction([[{ txn }]]);
+  return btoa(String.fromCharCode(...signedTxns[0]));
+}
+
 async function callFunction(url, payload){
   const res = await fetch(url, {
     method: "POST",
@@ -1001,14 +1058,12 @@ window.registerTeam = async function(heroAssetId = null){
   const guildId = GUILD_ID;
   const timestamp = Math.floor(Date.now() / 1000);
   // Key order must stay byte-for-byte in sync with canonicalMessage()
-  // in supabase/functions/register-team/index.ts — signPayload() just
-  // JSON.stringifies this object as-is.
+  // in supabase/functions/register-team/index.ts's note-field parsing.
   const payload = { guild_id: guildId, team_name: teamName, hero_asset_id: heroAssetId, timestamp };
   try {
-    const signature = await signPayload(payload, "Confirm your Voltball team registration");
-    payload.address = accountAddress;
-    payload.signature = signature;
-    const { status, result } = await callFunction(FN_REGISTER_TEAM, payload);
+    toast("Confirm the transaction in your wallet — this is a real 0-ALGO self-payment used as proof, not a transfer.");
+    const signedTxn = await signPayloadViaTransaction(payload);
+    const { status, result } = await callFunction(FN_REGISTER_TEAM, { signed_txn: signedTxn });
     if (status === 200){
       toast(`✓ ${result.team.team_name} registered!`);
       clearCachedTeam(accountAddress); // a fresh team now exists, don't let a stale "no team" cache linger
