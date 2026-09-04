@@ -502,16 +502,15 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-// Pinned to an exact version, not just "@1" -- verifySignature (used
-// below in signPayload) was added in a later 1.x release (Pera's own
-// GitHub PR #183), and an unpinned major-version specifier through
-// esm.sh can resolve/cache an older 1.x bundle that predates it
-// entirely. That's a real failure mode, not a hypothetical: it's what
-// silently reproduced the "Signer cannot sign arbitrary data" error
-// for a rekeyed wallet even after verifySignature: true was already
-// in this file's source -- the loaded bundle just didn't have the
-// parameter, so the extra argument was silently ignored.
-import { PeraWalletConnect } from "https://esm.sh/@perawallet/connect@1.5.2";
+// Reverted to the unpinned "@1" after pinning to @1.5.2 broke Connect
+// Wallet entirely for everyone (not just rekeyed accounts) -- likely
+// either an esm.sh build issue for that exact version or an API
+// mismatch, neither confirmed from here. The rekey fix itself doesn't
+// actually need the pin: resolveSigningAddress() in signPayload()
+// below computes and passes the correct signer address explicitly, so
+// it works regardless of which 1.x bundle this resolves to. Revisit
+// pinning later with an actual test environment, not on launch day.
+import { PeraWalletConnect } from "https://esm.sh/@perawallet/connect@1";
 
 const FORMATIONS = {
   OFFENSE:  {QB:1, Striker:5, Mid:1, Guard:1},
