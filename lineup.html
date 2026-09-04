@@ -1042,10 +1042,9 @@ async function getMyTeam(){
   const guildId = GUILD_ID;
   const timestamp = Math.floor(Date.now() / 1000);
   const payload = { guild_id: guildId, timestamp };
-  const signature = await signPayload({ guild_id: guildId, timestamp }, "Check your Voltball team");
-  payload.address = accountAddress;
-  payload.signature = signature;
-  return callFunction(FN_GET_MY_TEAM, payload);
+  toast("Confirm the transaction in your wallet — this is a real 0-ALGO self-payment used as proof, not a transfer.");
+  const signedTxn = await signPayloadViaTransaction(payload);
+  return callFunction(FN_GET_MY_TEAM, { signed_txn: signedTxn });
 }
 
 window.registerTeam = async function(heroAssetId = null){
@@ -1054,14 +1053,12 @@ window.registerTeam = async function(heroAssetId = null){
   const guildId = GUILD_ID;
   const timestamp = Math.floor(Date.now() / 1000);
   // Key order must stay byte-for-byte in sync with canonicalMessage()
-  // in supabase/functions/register-team/index.ts — signPayload() just
-  // JSON.stringifies this object as-is.
+  // in supabase/functions/register-team/index.ts's note-field parsing.
   const payload = { guild_id: guildId, team_name: teamName, hero_asset_id: heroAssetId, timestamp };
   try {
-    const signature = await signPayload(payload, "Confirm your Voltball team registration");
-    payload.address = accountAddress;
-    payload.signature = signature;
-    const { status, result } = await callFunction(FN_REGISTER_TEAM, payload);
+    toast("Confirm the transaction in your wallet — this is a real 0-ALGO self-payment used as proof, not a transfer.");
+    const signedTxn = await signPayloadViaTransaction(payload);
+    const { status, result } = await callFunction(FN_REGISTER_TEAM, { signed_txn: signedTxn });
     if (status === 200){
       toast(`✓ ${result.team.team_name} registered!`);
       clearCachedTeam(accountAddress); // a fresh team now exists, don't let a stale "no team" cache linger
