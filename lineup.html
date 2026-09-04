@@ -1046,10 +1046,9 @@ async function getMyTeam(){
   const guildId = GUILD_ID;
   const timestamp = Math.floor(Date.now() / 1000);
   const payload = { guild_id: guildId, timestamp };
-  const signature = await signPayload({ guild_id: guildId, timestamp }, "Check your Voltball team");
-  payload.address = accountAddress;
-  payload.signature = signature;
-  return callFunction(FN_GET_MY_TEAM, payload);
+  toast("Confirm the transaction in your wallet — this is a real 0-ALGO self-payment used as proof, not a transfer.");
+  const signedTxn = await signPayloadViaTransaction(payload);
+  return callFunction(FN_GET_MY_TEAM, { signed_txn: signedTxn });
 }
 
 window.registerTeam = async function(heroAssetId = null){
