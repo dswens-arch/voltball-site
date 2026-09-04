@@ -511,19 +511,16 @@
 // below computes and passes the correct signer address explicitly, so
 // it works regardless of which 1.x bundle this resolves to. Revisit
 // pinning later with an actual test environment, not on launch day.
-// Pinned to an exact version WITH its peer dependency explicitly
-// resolved -- verifySignature (used in signPayload below) doesn't
-// exist before 1.5.0, but 1.5.x switched to native ESM and declares
-// algosdk as a peerDependency (not bundled) per its own package.json.
-// The earlier attempt at pinning to just "@1.5.2" broke Connect
-// Wallet entirely -- almost certainly esm.sh failing to resolve that
-// peer dependency on its own for the newer build, taking the whole
-// module down with it. The unpinned "@1" that worked before was very
-// likely landing on an older pre-1.5.0 release that bundles algosdk
-// itself, which is why it never hit this problem -- not because
-// pinning itself is unsafe. ?deps= tells esm.sh exactly which algosdk
-// build to use instead of leaving it to auto-resolve.
-import { PeraWalletConnect } from "https://esm.sh/@perawallet/connect@1.5.2?deps=algosdk@3.5.2";
+// Reverted again -- pinning to 1.5.2 broke Connect Wallet entirely a
+// SECOND time (with or without explicit peer-dep resolution via
+// ?deps=), which is strong enough evidence to stop pinning this
+// package via esm.sh tonight altogether. Whatever the exact cause,
+// it's not something safely diagnosable without a real browser test
+// environment, which isn't available here. Back to the confirmed-
+// working baseline: unpinned "@1", no verifySignature, no manual
+// signer override. The rekey case is a known, unsolved limitation for
+// launch -- see chat -- not something to keep guessing at live.
+import { PeraWalletConnect } from "https://esm.sh/@perawallet/connect@1";
 
 const FORMATIONS = {
   OFFENSE:  {QB:1, Striker:5, Mid:1, Guard:1},
