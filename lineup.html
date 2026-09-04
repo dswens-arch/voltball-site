@@ -801,8 +801,8 @@ async function signPayloadViaTransaction(canonicalObj){
   const noteBytes = new TextEncoder().encode(JSON.stringify(canonicalObj));
 
   const txn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
-    from: accountAddress,
-    to: accountAddress,
+    sender: accountAddress,
+    receiver: accountAddress,
     amount: 0,
     note: noteBytes,
     suggestedParams: params,
