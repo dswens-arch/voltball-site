@@ -502,7 +502,16 @@
 <div class="toast" id="toast"></div>
 
 <script type="module">
-import { PeraWalletConnect } from "https://esm.sh/@perawallet/connect@1";
+// Pinned to an exact version, not just "@1" -- verifySignature (used
+// below in signPayload) was added in a later 1.x release (Pera's own
+// GitHub PR #183), and an unpinned major-version specifier through
+// esm.sh can resolve/cache an older 1.x bundle that predates it
+// entirely. That's a real failure mode, not a hypothetical: it's what
+// silently reproduced the "Signer cannot sign arbitrary data" error
+// for a rekeyed wallet even after verifySignature: true was already
+// in this file's source -- the loaded bundle just didn't have the
+// parameter, so the extra argument was silently ignored.
+import { PeraWalletConnect } from "https://esm.sh/@perawallet/connect@1.5.2";
 
 const FORMATIONS = {
   OFFENSE:  {QB:1, Striker:5, Mid:1, Guard:1},
@@ -670,11 +679,58 @@ function statusLine(msg){
 // auth-addr via their own resolveSigningAddress() -- both sides need
 // to agree on which address actually produced the signature, or a
 // genuine signature from a rekeyed account fails verification anyway.
+// Resolved once per connected session, not per signed action -- avoids
+// a live indexer round-trip on every single signPayload() call. Safe
+// to cache at module scope because a wallet disconnect reloads the
+// whole page (see peraWallet.connector?.on("disconnect", ...) below),
+// which resets this along with everything else -- there's no path
+// where a second, different wallet connects without a fresh page load
+// in between.
+let cachedSigningAddress = null;
+
+// A rekeyed account's genuine signature has to come from its
+// auth-address, not its own address. Pera's signData(..., verifySignature:
+// true) documents that it auto-detects and substitutes this -- but
+// Pera's own release notes for that feature also say "rekeyed accounts
+// must be handled by the caller when using this method", which turned
+// out to matter in practice: a real rekeyed wallet still got "Signer
+// cannot sign arbitrary data" with verifySignature: true alone. This
+// resolves the real signer explicitly, the same way the backend edge
+// functions already do (resolveSigningAddress in register-team.ts /
+// submit-lineup.ts / get-my-team's index.ts) -- both sides need to
+// agree on which address actually produced the signature, and this is
+// no longer left to an internal auto-substitution to get right.
+async function resolveSigningAddress(address){
+  if (cachedSigningAddress) return cachedSigningAddress;
+  const urls = [
+    `https://mainnet-idx.algonode.cloud/v2/accounts/${address}`,
+    `https://mainnet-idx.4160.nodely.io/v2/accounts/${address}`,
+  ];
+  for (const url of urls){
+    try {
+      const res = await fetch(url);
+      if (res.ok){
+        const data = await res.json();
+        cachedSigningAddress = data.account?.["auth-addr"] || address;
+        return cachedSigningAddress;
+      }
+    } catch (err) {
+      console.error("Rekey check failed on this indexer, trying next:", err);
+    }
+  }
+  // Both indexers unreachable -- fall back to the connected address
+  // rather than blocking the whole action over an indexer outage. A
+  // genuinely rekeyed account fails signing in that case (same as
+  // before this fix existed); a non-rekeyed account is unaffected.
+  return address;
+}
+
 async function signPayload(canonicalObj, humanMessage){
   const message = JSON.stringify(canonicalObj);
+  const signerAddress = await resolveSigningAddress(accountAddress);
   const signedData = await peraWallet.signData(
     [{ data: new TextEncoder().encode(message), message: humanMessage }],
-    accountAddress,
+    signerAddress,
     true
   );
   return btoa(String.fromCharCode(...signedData[0]));
