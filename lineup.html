@@ -1165,6 +1165,44 @@ async function refreshMyTeam(){
 }
 window.refreshMyTeam = refreshMyTeam;
 
+// ── TEMPORARY debug harness for the rekey transaction-signing path ──
+// Remove once this is resolved. Renders output directly ON THE PAGE
+// (not console.log) so it works purely on mobile with no DevTools --
+// tap the button, screenshot the result, same workflow as every other
+// bug report tonight. Only appears with ?debug=1 in the URL, so it's
+// invisible to normal users.
+if (new URLSearchParams(location.search).get('debug') === '1'){
+  const panel = document.createElement('div');
+  panel.id = 'debug-panel';
+  panel.style.cssText = 'position:fixed; bottom:0; left:0; right:0; max-height:60vh; overflow:auto; background:#000; color:#0f0; font-family:monospace; font-size:11px; padding:12px; z-index:9999; border-top:2px solid var(--striker);';
+  panel.innerHTML = `
+    <button onclick="window.debugTestTxnSign()" style="background:var(--striker); color:#000; border:none; padding:10px 16px; border-radius:6px; font-weight:700; margin-bottom:10px; width:100%;">🔧 Test Transaction Signing</button>
+    <pre id="debug-output" style="white-space:pre-wrap; word-break:break-all;">Tap the button above after connecting your wallet.</pre>
+  `;
+  document.body.appendChild(panel);
+}
+
+function debugLog(text){
+  const out = document.getElementById('debug-output');
+  if (out) out.textContent += '\n' + text;
+}
+
+window.debugTestTxnSign = async function(){
+  const out = document.getElementById('debug-output');
+  if (out) out.textContent = 'Running...';
+  debugLog(`accountAddress: ${accountAddress} (${typeof accountAddress})`);
+  debugLog(`peraWallet.isConnected: ${peraWallet?.isConnected}`);
+  try {
+    const result = await signPayloadViaTransaction({ guild_id: GUILD_ID, timestamp: Math.floor(Date.now() / 1000) });
+    debugLog(`SUCCESS -- signed txn (base64, first 80 chars): ${result.slice(0, 80)}...`);
+    return result;
+  } catch (err) {
+    debugLog(`FAILED: ${err?.message || err}`);
+    debugLog(`Full error: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`);
+    throw err;
+  }
+};
+
 // Always a fresh, unsigned public read -- see the note above on why
 // current_week specifically is never cached.
 async function fetchCurrentSeason(){
