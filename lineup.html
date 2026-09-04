@@ -511,7 +511,19 @@
 // below computes and passes the correct signer address explicitly, so
 // it works regardless of which 1.x bundle this resolves to. Revisit
 // pinning later with an actual test environment, not on launch day.
-import { PeraWalletConnect } from "https://esm.sh/@perawallet/connect@1";
+// Pinned to an exact version WITH its peer dependency explicitly
+// resolved -- verifySignature (used in signPayload below) doesn't
+// exist before 1.5.0, but 1.5.x switched to native ESM and declares
+// algosdk as a peerDependency (not bundled) per its own package.json.
+// The earlier attempt at pinning to just "@1.5.2" broke Connect
+// Wallet entirely -- almost certainly esm.sh failing to resolve that
+// peer dependency on its own for the newer build, taking the whole
+// module down with it. The unpinned "@1" that worked before was very
+// likely landing on an older pre-1.5.0 release that bundles algosdk
+// itself, which is why it never hit this problem -- not because
+// pinning itself is unsafe. ?deps= tells esm.sh exactly which algosdk
+// build to use instead of leaving it to auto-resolve.
+import { PeraWalletConnect } from "https://esm.sh/@perawallet/connect@1.5.2?deps=algosdk@3.5.2";
 
 const FORMATIONS = {
   OFFENSE:  {QB:1, Striker:5, Mid:1, Guard:1},
@@ -725,12 +737,22 @@ async function resolveSigningAddress(address){
   return address;
 }
 
+// Reverted resolveSigningAddress() substitution here -- a second user
+// (not confirmed rekeyed) got "Invalid signer" immediately after this
+// went live, right on the heels of the rekey-specific fix. That's too
+// strong a signal to keep guessing forward on: whatever resolveSigningAddress
+// was computing, Pera's connected session didn't accept it as a valid
+// signer for at least one non-bustereagle case. Back to passing
+// accountAddress directly -- verifySignature: true stays (it's inert,
+// not what broke Connect Wallet earlier -- that was the version pin,
+// already reverted separately). The rekey case goes back to unsolved
+// for now; restoring the working path for everyone else takes priority
+// over a live, unverified fix during actual registration.
 async function signPayload(canonicalObj, humanMessage){
   const message = JSON.stringify(canonicalObj);
-  const signerAddress = await resolveSigningAddress(accountAddress);
   const signedData = await peraWallet.signData(
     [{ data: new TextEncoder().encode(message), message: humanMessage }],
-    signerAddress,
+    accountAddress,
     true
   );
   return btoa(String.fromCharCode(...signedData[0]));
