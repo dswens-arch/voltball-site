@@ -146,6 +146,21 @@
   .team-panel-body{ padding:16px 20px 20px; }
   .placeholder-note{ font-size:13px; color:var(--text-dim); font-style:italic; }
 
+  .lineup-status-dot{
+    display:inline-block; width:8px; height:8px; border-radius:50%; margin-left:8px; vertical-align:middle;
+  }
+  .lineup-status-dot.set{ background:var(--guard); box-shadow:0 0 6px var(--guard); }
+  .lineup-status-dot.pending{ background:var(--text-dim); }
+
+  .team-panel-header.expandable{ cursor:pointer; }
+  .expand-chevron{
+    color:var(--text-dim); font-size:11px; margin-left:6px; flex-shrink:0; transition:transform .2s ease;
+  }
+  .team-panel.open .expand-chevron{ transform:rotate(180deg); }
+  .team-panel-collapse{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .25s ease; }
+  .team-panel.open .team-panel-collapse{ grid-template-rows:1fr; }
+  .team-panel-collapse-inner{ overflow:hidden; }
+
   .lanes-scout{ display:grid; grid-template-columns: repeat(4,1fr); gap:14px; }
   .lane-scout-label{
     font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:11px; text-transform:uppercase;
@@ -404,6 +419,15 @@ function tempoLabel(t){
   return 'Standard';
 }
 
+// Collapsed by default (no .open class on initial render) -- toggling
+// just adds/removes the class the CSS grid-row transition keys off of,
+// same collapse pattern already used for Season Schedule on lineup.html.
+function toggleTeamPanel(teamId){
+  const panel = document.querySelector(`.team-panel[data-team-id="${teamId}"]`);
+  if (panel) panel.classList.toggle('open');
+}
+window.toggleTeamPanel = toggleTeamPanel;
+
 function resolveChip(entry, stats){
   const live = stats[String(entry.asset_id)];
   if (live) return { name: live.name, image_url: live.image_url, VLT: live.VLT, INS: live.INS, SPK: live.SPK };
@@ -508,9 +532,11 @@ async function init(){
     wrap.innerHTML = teamsSorted.map(team => {
       const heroImg = team.hero_type && HERO_IMAGE[team.hero_type] ? HERO_IMAGE[team.hero_type] : avatarFor(team.id);
       const lineup = lineupByTeam[team.id];
+      const hasLineup = !seasonNotStarted && !team.is_cpu && !!lineup;
 
       let formationTag = '';
       let tempoTag = '';
+      let statusDot = '';
       let body;
       if (seasonNotStarted){
         body = `<div class="placeholder-note">✅ Registered — season hasn't started yet.</div>`;
@@ -522,22 +548,36 @@ async function init(){
           const t = lineup.tempo;
           tempoTag = `<div class="tempo-tag">Tempo ${t.toFixed(1).replace(/\.0$/, '')} — ${tempoLabel(t)}</div>`;
         }
+        statusDot = `<span class="lineup-status-dot set" title="Lineup set"></span>`;
         body = renderLineupPanel(team, lineup, stats);
       } else {
+        statusDot = `<span class="lineup-status-dot pending" title="No lineup yet"></span>`;
         body = `<div class="placeholder-note">⏳ No lineup submitted yet.</div>`;
       }
 
+      // Only the full roster breakdown collapses -- with 17+ teams this
+      // page would otherwise be an enormous scroll of expanded chip
+      // grids. The placeholder states (no lineup yet, CPU, season not
+      // started) are already a single short line each, nothing there
+      // needs hiding, so those render directly, uncollapsed. Only a
+      // real lineup gets wrapped in the collapse + only then is the
+      // header clickable -- nothing to expand otherwise.
+      const bodyHtml = hasLineup
+        ? `<div class="team-panel-collapse" id="collapse-${team.id}"><div class="team-panel-collapse-inner"><div class="team-panel-body">${body}</div></div></div>`
+        : `<div class="team-panel-body">${body}</div>`;
+
       return `<div class="team-panel" data-team-id="${team.id}">
-        <div class="team-panel-header">
+        <div class="team-panel-header${hasLineup ? ' expandable' : ''}"${hasLineup ? ` onclick="toggleTeamPanel('${team.id}')"` : ''}>
           <img src="${heroImg}" onerror="this.onerror=null; this.src='${avatarFor(team.id)}';" alt="">
           <div>
-            <div class="team-panel-name">${team.team_name}${team.is_cpu ? '<span class="cpu-tag">CPU</span>' : ''}</div>
+            <div class="team-panel-name">${team.team_name}${team.is_cpu ? '<span class="cpu-tag">CPU</span>' : ''}${statusDot}</div>
             <div class="team-panel-hero">${team.hero_type || 'No Coach'}</div>
           </div>
           ${formationTag}
           ${tempoTag}
+          ${hasLineup ? '<span class="expand-chevron">▼</span>' : ''}
         </div>
-        <div class="team-panel-body">${body}</div>
+        ${bodyHtml}
       </div>`;
     }).join('');
 
