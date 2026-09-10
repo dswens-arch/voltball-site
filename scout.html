@@ -137,6 +137,11 @@
     text-transform:uppercase; padding:5px 12px; border-radius:20px; background:var(--panel-2); color:var(--text);
     border:1px solid var(--line); white-space:nowrap;
   }
+  .tempo-tag{
+    margin-left:8px; font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:11px; letter-spacing:0.04em;
+    padding:5px 12px; border-radius:20px; background:var(--panel-2); color:var(--text-dim);
+    border:1px solid var(--line); white-space:nowrap;
+  }
 
   .team-panel-body{ padding:16px 20px 20px; }
   .placeholder-note{ font-size:13px; color:var(--text-dim); font-style:italic; }
@@ -390,6 +395,15 @@ function fmtStatus(status){
 // Falls back to the stored name + a generated avatar if the asset isn't
 // in the collection file for any reason (shouldn't normally happen for
 // real roster Zappies, but a Hero/collab asset never would be).
+// Mirrors voltball_engine.py's tempo_label() / lineup.html's tempoLabel()
+// exactly — same thresholds, so the bucket shown here always matches
+// what the lock-in confirmation and Discord embeds call it.
+function tempoLabel(t){
+  if (t <= 3.0) return 'Controlled';
+  if (t >= 8.0) return 'Aggressive';
+  return 'Standard';
+}
+
 function resolveChip(entry, stats){
   const live = stats[String(entry.asset_id)];
   if (live) return { name: live.name, image_url: live.image_url, VLT: live.VLT, INS: live.INS, SPK: live.SPK };
@@ -496,6 +510,7 @@ async function init(){
       const lineup = lineupByTeam[team.id];
 
       let formationTag = '';
+      let tempoTag = '';
       let body;
       if (seasonNotStarted){
         body = `<div class="placeholder-note">✅ Registered — season hasn't started yet.</div>`;
@@ -503,6 +518,10 @@ async function init(){
         body = `<div class="placeholder-note">🤖 CPU team — fields a fresh random roster and formation at resolution time.</div>`;
       } else if (lineup){
         formationTag = `<div class="formation-tag">${lineup.formation}</div>`;
+        if (typeof lineup.tempo === 'number'){
+          const t = lineup.tempo;
+          tempoTag = `<div class="tempo-tag">Tempo ${t.toFixed(1).replace(/\.0$/, '')} — ${tempoLabel(t)}</div>`;
+        }
         body = renderLineupPanel(team, lineup, stats);
       } else {
         body = `<div class="placeholder-note">⏳ No lineup submitted yet.</div>`;
@@ -516,6 +535,7 @@ async function init(){
             <div class="team-panel-hero">${team.hero_type || 'No Coach'}</div>
           </div>
           ${formationTag}
+          ${tempoTag}
         </div>
         <div class="team-panel-body">${body}</div>
       </div>`;
