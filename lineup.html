@@ -1000,6 +1000,23 @@ async function loadSeasonSchedule(){
 
     body.innerHTML = scheduleRows.map(row => {
       const oppId = row.team_a_id === currentTeam.id ? row.team_b_id : row.team_a_id;
+      const label = row.is_playoff
+        ? (row.week_number === currentSeason.week_count + 1 ? 'Semi' : 'Final')
+        : `Wk ${row.week_number}`;
+
+      // A bye is a real, valid schedule row with no opponent at all
+      // (team_b_id is null) -- NOT the same thing as a lookup failing
+      // to find a real opponent ID. Checking oppId's presence FIRST
+      // means a bye reads as "BYE", not the fallback text meant for an
+      // actually-broken reference ('Unknown team' below still exists
+      // for that separate, genuine-error case).
+      if (!oppId){
+        return `<div class="schedule-row ${row.week_number === currentSeason.current_week ? 'current' : ''}">
+          <span class="week-num">${label}</span>
+          <span class="opp" style="font-style:italic;">BYE — no game this week</span>
+        </div>`;
+      }
+
       const opp = teamsById[oppId];
       const oppName = opp ? opp.team_name : 'Unknown team';
       const match = matchByWeek[row.week_number];
@@ -1016,10 +1033,6 @@ async function loadSeasonSchedule(){
         const won = match.winner_team_id === currentTeam.id;
         resultHtml = `<span class="result ${won ? 'win' : 'loss'}">${won ? 'W' : 'L'} ${Math.round(myScore)}\u2013${Math.round(oppScore)}</span>`;
       }
-
-      const label = row.is_playoff
-        ? (row.week_number === currentSeason.week_count + 1 ? 'Semi' : 'Final')
-        : `Wk ${row.week_number}`;
 
       return `<div class="schedule-row ${isCurrent ? 'current' : ''}">
         <span class="week-num">${label}</span>
