@@ -498,6 +498,7 @@
 <div class="submit-bar" id="submit-bar" style="display:none;">
   <div class="progress-text"><b id="progress-count">0/7</b>&nbsp; assigned</div>
   <button class="lock-btn" id="lock-btn" onclick="lockIn()">Lock In Lineup</button>
+  <button class="lock-btn" id="edit-lineup-btn" onclick="unlockLineupEditing()" style="display:none; background:var(--panel-2); border:1px solid var(--line); color:var(--text);">✏️ Edit Lineup</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1418,10 +1419,11 @@ async function loadMyTeamAndRoster(){
     lockBtn.style.color = '#0B0D14';
     lockBtn.style.cursor = 'default';
     for (const item of document.querySelectorAll('#lanes .slot')) item.style.pointerEvents = 'none';
+    document.getElementById('edit-lineup-btn').style.display = 'inline-block';
     const badge = document.getElementById('locked-badge');
     badge.style.display = 'inline';
     badge.style.color = 'var(--guard)';
-    badge.textContent = `· ✓ Locked in (${formation} / tempo ${tempo})`;
+    badge.textContent = `· ✓ Locked in (${formation} / tempo ${tempo} — ${tempoLabel(tempo)})`;
   } else {
     await checkForRepeatableLineup();
     render();
@@ -1546,16 +1548,19 @@ function renderFormations(){
 }
 // Mirrors voltball_engine.py's tempo_label() exactly — same thresholds,
 // so the bucket shown here always matches what Discord/embeds would call it.
+function tempoLabel(t){
+  if (t <= 3.0) return 'Controlled';
+  if (t >= 8.0) return 'Aggressive';
+  return 'Standard';
+}
+
 window.onTempoChange = function(val){
   tempo = parseFloat(val);
   document.getElementById('tempo-value').textContent = tempo.toFixed(1).replace(/\.0$/, '');
+  const bucket = tempoLabel(tempo);
   const bucketEl = document.getElementById('tempo-bucket');
-  let bucket, cls;
-  if (tempo <= 3.0) { bucket = 'Controlled'; cls = 'controlled'; }
-  else if (tempo >= 8.0) { bucket = 'Aggressive'; cls = 'aggressive'; }
-  else { bucket = 'Standard'; cls = ''; }
   bucketEl.textContent = bucket;
-  bucketEl.className = 'tempo-bucket' + (cls ? ' ' + cls : '');
+  bucketEl.className = 'tempo-bucket' + (bucket === 'Controlled' ? ' controlled' : bucket === 'Aggressive' ? ' aggressive' : '');
 };
 
 window.selectFormation = function(name){
@@ -1668,6 +1673,33 @@ function renderSubmit(){
   }
 }
 
+// Re-enables editing after a lock-in -- submit-lineup.ts already
+// supports changing your mind: a resubmission with a newer timestamp
+// correctly overwrites the previous one (the replay guard only blocks
+// an OLDER timestamp from overwriting a newer one, not a legitimate
+// update). This was purely a missing frontend affordance -- the site
+// permanently disabled the whole roster/tempo UI after one submission
+// with no way back in, even though the backend was always fine with
+// an update up until the week actually airs.
+function unlockLineupEditing(){
+  for (const item of document.querySelectorAll('#lanes .slot')) item.style.pointerEvents = '';
+  document.getElementById('tempo-slider').disabled = false;
+
+  const lockBtn = document.getElementById('lock-btn');
+  lockBtn.textContent = 'Lock In Lineup';
+  lockBtn.disabled = false;
+  lockBtn.style.pointerEvents = '';
+  lockBtn.style.background = '';
+  lockBtn.style.color = '';
+  lockBtn.style.cursor = '';
+
+  document.getElementById('edit-lineup-btn').style.display = 'none';
+  document.getElementById('locked-badge').style.display = 'none';
+
+  render(); // recomputes lock-btn's ready/not-ready state via renderSubmit()
+}
+window.unlockLineupEditing = unlockLineupEditing;
+
 function render(){
   renderFormations();
   renderLanes();
@@ -1734,9 +1766,10 @@ window.lockIn = async function(){
       const badge = document.getElementById('locked-badge');
       badge.style.display = 'inline';
       badge.style.color = 'var(--guard)';
-      badge.textContent = `· ✓ Locked in (${formation} / tempo ${tempo})`;
+      badge.textContent = `· ✓ Locked in (${formation} / tempo ${tempo} — ${tempoLabel(tempo)})`;
 
-      toast(`✓ Lineup locked in — running ${formation} / tempo ${tempo} this week.`);
+      document.getElementById('edit-lineup-btn').style.display = 'inline-block';
+      toast(`✓ Lineup locked in — running ${formation} / tempo ${tempo} (${tempoLabel(tempo)}) this week.`);
     } else {
       toast(`✗ ${result.error}`, true);
     }
