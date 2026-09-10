@@ -1705,24 +1705,15 @@ window.lockIn = async function(){
   };
 
   try {
-    const signature = await signPayload(
-      { team_id: payload.team_id, season_id: payload.season_id, week_number: payload.week_number, formation: payload.formation, assignments: payload.assignments, timestamp: payload.timestamp },
-      "Confirm your Voltball lineup"
-    );
-    payload.address = accountAddress;
-    payload.signature = signature;
-    // tempo is intentionally NOT part of the signed canonical object
-    // above — it's appended after signing, same as address/signature.
-    // Low-stakes by design: tempo only affects the coach's own match
-    // outcome, not anyone else's, so it doesn't need the same
-    // wallet-authorization guarantee formation/assignments do. BUT:
-    // submit-lineup (the edge function) needs updating to actually
-    // read and persist payload.tempo — as of this commit it doesn't
-    // know this field exists, so this line is ready for that update
-    // but won't do anything until it ships server-side.
-    payload.tempo = tempo;
-
-    const { status, result } = await callFunction(FN_SUBMIT_LINEUP, payload);
+    toast("Confirm the transaction in your wallet — this is a real 0-ALGO self-payment used as proof, not a transfer.");
+    const signedTxn = await signPayloadViaTransaction(payload);
+    // tempo is intentionally NOT part of the signed payload above --
+    // it's sent as a separate top-level field, same reasoning as
+    // before: low-stakes by design, only affects the coach's own match
+    // outcome, so it doesn't need the same wallet-authorization
+    // guarantee formation/assignments do. submit-lineup reads it off
+    // the request body directly, not out of the verified note.
+    const { status, result } = await callFunction(FN_SUBMIT_LINEUP, { signed_txn: signedTxn, tempo });
     if (status === 200){
       for (const item of document.querySelectorAll('#lanes .slot')) item.style.pointerEvents = 'none';
       document.getElementById('tempo-slider').disabled = true;
