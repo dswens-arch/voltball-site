@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voltball — Game Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg: #0B0D14;
+    --panel: #151827;
+    --panel-2: #1B1F32;
+    --line: #262B40;
+    --text: #E7E9F2;
+    --text-dim: #8A8FA8;
+    --striker: #E8FF3C;
+    --mid: #7B5CFF;
+    --guard: #2DE1C2;
+    --qb: #FF9F40;
+    --alert: #FF3D6E;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background: radial-gradient(ellipse 1200px 600px at 50% -10%, #1a1030 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height:100vh;
+    padding-bottom: 60px;
+  }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+  .display{ font-family:'Chakra Petch', sans-serif; font-weight:700; letter-spacing:0.01em; }
+
+  nav{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 20px 32px; border-bottom:1px solid var(--line);
+    position:sticky; top:0; background:rgba(11,13,20,0.85); backdrop-filter: blur(10px);
+    z-index:50;
+  }
+  .wordmark{
+    display:flex; align-items:center; gap:10px; font-size:20px; color:inherit; text-decoration:none;
+    position:relative; z-index:70;
+  }
+  .wordmark .bolt{ color:var(--striker); font-size:22px; filter: drop-shadow(0 0 8px rgba(232,255,60,0.6)); }
+  .nav-right{ display:flex; align-items:center; }
+  .nav-links{ display:flex; align-items:center; gap:22px; margin-right:20px; }
+  .nav-link{
+    font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:13px; letter-spacing:0.03em;
+    color:var(--text-dim); text-decoration:none; padding:6px 2px; border-bottom:2px solid transparent;
+  }
+  .nav-link.current{ color:var(--striker); border-bottom-color:var(--striker); }
+
+  .hamburger-btn{
+    display:none; flex-direction:column; justify-content:center; gap:5px;
+    width:32px; height:32px; background:none; border:none; cursor:pointer; padding:4px; flex-shrink:0;
+    position:relative; z-index:70;
+  }
+  .hamburger-btn span{
+    display:block; width:100%; height:2px; background:var(--text); border-radius:2px;
+    transition: transform .2s ease, opacity .2s ease;
+  }
+  .hamburger-btn.open span:nth-child(1){ transform: translateY(7px) rotate(45deg); }
+  .hamburger-btn.open span:nth-child(2){ opacity:0; }
+  .hamburger-btn.open span:nth-child(3){ transform: translateY(-7px) rotate(-45deg); }
+
+  main{ max-width: 760px; margin: 0 auto; padding: 0 24px; }
+
+  .hero{ padding: 56px 0 36px; }
+  .hero h1{ font-size:36px; line-height:1.15; margin-bottom:14px; }
+  .hero p{ color:var(--text-dim); font-size:15px; max-width:560px; line-height:1.6; }
+
+  /* Table of contents — plain anchor list, not decoration. With this
+     much reference content, a way to jump straight to one section
+     matters more than a styled nav element. */
+  .toc{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px 22px; margin-bottom:40px;
+  }
+  .toc-title{ font-family:'Chakra Petch',sans-serif; font-size:12px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.06em; margin-bottom:10px; }
+  .toc ol{ list-style:none; display:grid; grid-template-columns:1fr 1fr; gap:6px 20px; }
+  .toc a{ color:var(--text); text-decoration:none; font-size:13px; }
+  .toc a:hover{ color:var(--striker); }
+
+  section{ margin-bottom:52px; scroll-margin-top:80px; }
+  section h2{
+    font-size:22px; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--line);
+    display:flex; align-items:center; gap:10px;
+  }
+  section h2 .dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  section p{ color:var(--text-dim); font-size:14px; line-height:1.7; margin-bottom:14px; }
+  section p b, section p strong{ color:var(--text); font-weight:600; }
+  section ul{ margin:0 0 14px 20px; color:var(--text-dim); font-size:14px; line-height:1.8; }
+  section li b{ color:var(--text); }
+
+  .callout{
+    background:var(--panel); border-left:3px solid var(--guard); border-radius:8px; padding:14px 18px; margin:18px 0;
+    font-size:13px; color:var(--text-dim); line-height:1.6;
+  }
+  .callout b{ color:var(--guard); }
+
+  .formula-block{
+    background:#08090F; border:1px solid var(--line); border-radius:8px; padding:16px 18px; margin:14px 0;
+    font-family:'IBM Plex Mono',monospace; font-size:12px; line-height:1.9; color:var(--text-dim); overflow-x:auto;
+  }
+  .formula-block .fname{ color:var(--striker); }
+  .formula-block .fval{ color:var(--guard); }
+
+  /* Formation table */
+  .formation-table{ width:100%; border-collapse:collapse; margin:16px 0; font-size:13px; }
+  .formation-table th{
+    text-align:left; font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:11px; text-transform:uppercase;
+    letter-spacing:0.05em; color:var(--text-dim); padding:8px 10px; border-bottom:1px solid var(--line);
+  }
+  .formation-table td{ padding:10px; border-bottom:1px solid var(--line); color:var(--text); }
+  .formation-table tr:last-child td{ border-bottom:none; }
+
+  /* Tempo scale */
+  .tempo-scale{
+    display:flex; background:var(--panel); border:1px solid var(--line); border-radius:8px; overflow:hidden; margin:16px 0;
+  }
+  .tempo-band{ flex:1; padding:14px 12px; text-align:center; border-right:1px solid var(--line); }
+  .tempo-band:last-child{ border-right:none; }
+  .tempo-band .range{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-dim); margin-bottom:4px; }
+  .tempo-band .name{ font-family:'Chakra Petch',sans-serif; font-weight:700; font-size:14px; }
+  .tempo-band.controlled .name{ color:var(--guard); }
+  .tempo-band.standard .name{ color:var(--text); }
+  .tempo-band.aggressive .name{ color:var(--alert); }
+
+  /* Hero accordion — collapsed by default, same pattern as Scout's
+     team-panel collapse, kept consistent across the site. */
+  .hero-item{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; margin-bottom:8px; overflow:hidden;
+  }
+  .hero-trigger{
+    width:100%; background:none; border:none; color:var(--text); text-align:left; cursor:pointer;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:14px 18px; font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:14px;
+  }
+  .hero-trigger .chev{ color:var(--text-dim); font-size:11px; transition:transform .2s ease; flex-shrink:0; }
+  .hero-item.open .hero-trigger .chev{ transform:rotate(180deg); }
+  .hero-collapse{ display:grid; grid-template-rows:0fr; transition:grid-template-rows .2s ease; }
+  .hero-item.open .hero-collapse{ grid-template-rows:1fr; }
+  .hero-collapse-inner{ overflow:hidden; }
+  .hero-collapse p{ padding:0 18px 16px; margin:0; font-size:13px; }
+  .hero-unknown{ color:var(--text-dim); font-style:italic; font-size:12px; padding:0 18px 16px; }
+
+  .footnote{ text-align:center; color:var(--text-dim); font-size:12px; padding: 30px 0 10px; }
+
+  @media (max-width: 700px){
+    nav{ padding: 14px 16px; backdrop-filter: none; }
+    .hamburger-btn{ display:flex; }
+    .nav-links{
+      display:none; position:fixed; inset:0;
+      background: var(--bg);
+      flex-direction:column; align-items:flex-start; justify-content:flex-start;
+      padding:90px 28px 28px; gap:0; z-index:60;
+    }
+    .nav-links.open{ display:flex; }
+    .nav-link{
+      font-size:20px; padding:16px 0; width:100%;
+      border-bottom:1px solid var(--line); white-space:normal;
+    }
+    .hero h1{ font-size:28px; }
+    .toc ol{ grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="wordmark" href="./index.html"><span class="bolt">⚡</span><span class="display">VOLTBALL</span></a>
+  <div class="nav-right">
+    <div class="nav-links" id="nav-links">
+      <a class="nav-link" href="./lineup.html">Lineup</a>
+      <a class="nav-link" href="./scout.html">Scout</a>
+      <a class="nav-link" href="./free-agents.html">Free Agents</a>
+      <a class="nav-link" href="./standings.html">Standings</a>
+      <a class="nav-link" href="./bracket.html">Bracket</a>
+      <a class="nav-link" href="./results.html">Results</a>
+      <a class="nav-link current" href="./guide.html">Guide</a>
+    </div>
+    <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMobileNav()" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+<script>
+  function toggleMobileNav(){
+    const links = document.getElementById('nav-links');
+    const btn = document.getElementById('hamburger-btn');
+    const isOpen = links.classList.toggle('open');
+    btn.classList.toggle('open', isOpen);
+    btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    document.body.style.overflow = isOpen ? 'hidden' : '';
+  }
+  window.toggleMobileNav = toggleMobileNav;
+</script>
+
+<main>
+  <div class="hero">
+    <h1 class="display">The full rules.</h1>
+    <p>Everything that goes into a Voltball season — roster, formation, Tempo, coaches, and what actually decides who wins.</p>
+  </div>
+
+  <div class="toc">
+    <div class="toc-title">Jump to a section</div>
+    <ol>
+      <li><a href="#basics">The basics</a></li>
+      <li><a href="#roster">Building your roster</a></li>
+      <li><a href="#stats">Season-allocated stats</a></li>
+      <li><a href="#formation">Formation & Tempo</a></li>
+      <li><a href="#heroes">Coach Heroes</a></li>
+      <li><a href="#match">How a match plays out</a></li>
+      <li><a href="#outcomes">What actually decides the outcome</a></li>
+      <li><a href="#standings">Standings & playoffs</a></li>
+      <li><a href="#rhythm">The weekly rhythm</a></li>
+    </ol>
+  </div>
+
+  <section id="basics">
+    <h2><span class="dot" style="background:var(--striker);"></span>The basics</h2>
+    <p>Voltball is a fantasy league built directly on your Zappies Reborn collection. Every held Zappy is a real player. Each week you build an 8-player roster, choose a formation and a Tempo, and your team plays out live — quarter by quarter, broadcast at a real pace, not resolved instantly behind the scenes.</p>
+    <p>Registration happens once, at the start of a season. Lineups get set — and can be changed — every week, up until that week's matches actually air.</p>
+  </section>
+
+  <section id="roster">
+    <h2><span class="dot" style="background:var(--qb);"></span>Building your roster</h2>
+    <p>You need <b>8 roster-eligible Zappies</b> held in your connected wallet. Each week, you slot all 8 into four positions:</p>
+    <ul>
+      <li><b>QB</b> — the anchor of the lineup</li>
+      <li><b>Striker</b> — leans primarily on VLT, with SPK as a secondary factor</li>
+      <li><b>Mid</b> — leans primarily on SPK, with INS as a secondary factor</li>
+      <li><b>Guard</b> — leans primarily on INS, with VLT as a secondary factor</li>
+    </ul>
+    <p>Position matters as much as which Zappy you pick — the same Zappy can be a standout at one position and unremarkable at another, since each position weighs a different pair of stats.</p>
+  </section>
+
+  <section id="stats">
+    <h2><span class="dot" style="background:var(--mid);"></span>Season-allocated stats</h2>
+    <p>Here's something that surprises people: the VLT/INS/SPK values your Zappies play with this season aren't fixed forever. Once per season, at the moment the season is created, <b>every Zappy in the entire collection gets a fresh, randomly-allocated performance band</b> — Legendary, All-Pro, Starter, Backup, or Practice Squad — and its stats for that season are borrowed from a real peer currently in that band.</p>
+    <p>Rarer trait combinations get better odds, not a guarantee:</p>
+    <table class="formation-table">
+      <tr><th>Rarity tier</th><th>Legendary</th><th>All-Pro</th><th>Starter</th><th>Backup</th><th>Practice Squad</th></tr>
+      <tr><td><b>Tier 1</b> (rarest ~10%)</td><td>5%</td><td>35%</td><td>60%</td><td>—</td><td>—</td></tr>
+      <tr><td><b>Tier 2</b> (mid ~30%)</td><td>—</td><td>15%</td><td>40%</td><td>35%</td><td>10%</td></tr>
+      <tr><td><b>Tier 3</b> (common ~60%)</td><td>—</td><td>5%</td><td>25%</td><td>45%</td><td>25%</td></tr>
+    </table>
+    <div class="callout"><b>Worth knowing:</b> a rare Zappy can never roll below Starter, and only a Tier 1 Zappy can ever hit Legendary — that's what makes rarity mean something concrete, not just "slightly better odds." But a Tier 1 Zappy can still land on a middling Starter season. Rarity buys odds, not outcomes.</div>
+  </section>
+
+  <section id="formation">
+    <h2><span class="dot" style="background:var(--guard);"></span>Formation & Tempo</h2>
+    <p>Your <b>formation</b> sets how many roster spots each position gets — this shifts where your team's strength has to concentrate:</p>
+    <table class="formation-table">
+      <tr><th>Formation</th><th>QB</th><th>Striker</th><th>Mid</th><th>Guard</th></tr>
+      <tr><td><b>OFFENSE</b></td><td>1</td><td>5</td><td>1</td><td>1</td></tr>
+      <tr><td><b>BALANCED</b></td><td>1</td><td>3</td><td>2</td><td>2</td></tr>
+      <tr><td><b>DEFENSE</b></td><td>1</td><td>1</td><td>2</td><td>4</td></tr>
+    </table>
+    <p>Your <b>Tempo</b> is a separate dial, 1 to 10, that controls risk — not who plays, but how your team plays:</p>
+    <div class="tempo-scale">
+      <div class="tempo-band controlled"><div class="range">1.0 – 3.0</div><div class="name">Controlled</div></div>
+      <div class="tempo-band standard"><div class="range">3.0 – 8.0</div><div class="name">Standard</div></div>
+      <div class="tempo-band aggressive"><div class="range">8.0 – 10.0</div><div class="name">Aggressive</div></div>
+    </div>
+    <p>Controlled plays it safer — smaller swings, a better average outcome. Aggressive swings bigger both ways — higher ceiling, higher risk. 5.5 is the default, right in the Standard range. Formation and Tempo work together, not independently: an Aggressive Tempo on a Defense-heavy formation plays very differently than the same Tempo on Offense.</p>
+  </section>
+
+  <section id="heroes">
+    <h2><span class="dot" style="background:var(--alert);"></span>Coach Heroes</h2>
+    <p>Hold a Hero NFT and it coaches your team with a real signature play that can swing a quarter directly. No Hero — you register as <b>"No Coach"</b> and compete entirely on roster and strategy. It's a genuine edge, not a requirement to play.</p>
+    <p>Every signature play is calibrated to land around the same <b>~7–9 point total match-average edge</b> — none of them scale with formation or how many Zappies you put in any slot. Three intentionally different <i>shapes</i> of getting there:</p>
+    <table class="formation-table">
+      <tr><th>Hero</th><th>Mechanic</th><th>What actually happens</th></tr>
+      <tr><td><b>Bison</b></td><td>Flat, every quarter</td><td>+2.0 guaranteed, all 4 quarters (= 8.0 total) — zero randomness, identical every game</td></tr>
+      <tr><td><b>Bat</b></td><td>50% chance, Q1 only</td><td>-16.0 to the opponent if it fires — expected value 8.0, but real variance: roughly half your games get 0, half get 16</td></tr>
+      <tr><td><b>Alien</b></td><td>Guaranteed once, timing varies</td><td>-8.0 to the opponent — fires 30% of the time in Q1, otherwise guaranteed in Q2. Not a coin flip on <i>whether</i> it happens, only <i>when</i></td></tr>
+    </table>
+    <p>Same target average — completely different risk profile. Every Hero below follows the same ~8-point calibration; tap one to see exactly how it gets there.</p>
+
+    <div class="hero-item">
+      <button class="hero-trigger" onclick="toggleHero(this)">🐺 Wolf — Pack Hunt <span class="chev">▼</span></button>
+      <div class="hero-collapse"><div class="hero-collapse-inner"><p>The pack gets hungrier as the match wears on. Grows every quarter the match continues — +0.8 × the quarter number, so Q1 is +0.8, Q4 is +3.2. Totals 8.0 across a full match if it goes the distance.</p></div></div>
+    </div>
+    <div class="hero-item">
+      <button class="hero-trigger" onclick="toggleHero(this)">🐸 Frog — Patience <span class="chev">▼</span></button>
+      <div class="hero-collapse"><div class="hero-collapse-inner"><p>Sits back early, cashes in late. A small guaranteed Q1 penalty (-3.0) followed by a bigger guaranteed Q4 payoff (+11.0) — net +8.0, but the shape of the match feels different from a flat bonus: behind early, ahead late.</p></div></div>
+    </div>
+    <div class="hero-item">
+      <button class="hero-trigger" onclick="toggleHero(this)">🐻 Bear — Beardown <span class="chev">▼</span></button>
+      <div class="hero-collapse"><div class="hero-collapse-inner"><p>Bulldozes straight through the opposing defense. 25% chance per quarter to completely negate the opponent's defense reduction against this team for that quarter — not a bonus, a full cancel of their defensive edge when it lands.</p></div></div>
+    </div>
+    <div class="hero-item">
+      <button class="hero-trigger" onclick="toggleHero(this)">🐊 Crocodile — Death Roll <span class="chev">▼</span></button>
+      <div class="hero-collapse"><div class="hero-collapse-inner"><p>Locks the opponent out of their big play. 35% chance per quarter to deny one of the opponent's random events entirely <i>and</i> capitalize with a +4.0 bonus of its own — a two-for-one when it fires.</p></div></div>
+    </div>
+    <div class="hero-item">
+      <button class="hero-trigger" onclick="toggleHero(this)">🐱 Cat — Nine Lives <span class="chev">▼</span></button>
+      <div class="hero-collapse"><div class="hero-collapse-inner"><p>Refuses to let the worst quarter sink them. Guaranteed once per match — not chance-based — floors whichever quarter would otherwise be this team's single lowest, boosting it by +10.0. Always fires exactly once.</p></div></div>
+    </div>
+    <div class="hero-item">
+      <button class="hero-trigger" onclick="toggleHero(this)">🐇 Rabbit — Lucky Foot <span class="chev">▼</span></button>
+      <div class="hero-collapse"><div class="hero-collapse-inner"><p>A lucky bounce goes their way. Standard flat-bonus play — 25% chance per quarter for a flat +8.0.</p></div></div>
+    </div>
+    <div class="hero-item">
+      <button class="hero-trigger" onclick="toggleHero(this)">🦅 Eagle — Talon Strike <span class="chev">▼</span></button>
+      <div class="hero-collapse"><div class="hero-collapse-inner"><p>Strikes early and hard before the opponent settles in. Big chance, but Q1 only — 50% for +16.0, meaning expected value 8.0 with real swing: half the time nothing, half the time a big early lead.</p></div></div>
+    </div>
+    <div class="hero-item">
+      <button class="hero-trigger" onclick="toggleHero(this)">🦌 Buck — Antler Clash <span class="chev">▼</span></button>
+      <div class="hero-collapse"><div class="hero-collapse-inner"><p>Wears the opponent down possession by possession. Same escalating shape as Wolf's Pack Hunt, mirrored onto the opponent as a growing reduction instead of a growing bonus — same 8.0 total magnitude.</p></div></div>
+    </div>
+    <div class="hero-item">
+      <button class="hero-trigger" onclick="toggleHero(this)">🐍 Snake — Venom Bite <span class="chev">▼</span></button>
+      <div class="hero-collapse"><div class="hero-collapse-inner"><p>The bite doesn't hurt right away — the poison does. A flat drain on the opponent starting Q2, not Q1 — roughly 2.67 per quarter for the remaining 3 quarters (≈8.0 total), true to the poison theme of not hitting immediately.</p></div></div>
+    </div>
+    <div class="hero-item">
+      <button class="hero-trigger" onclick="toggleHero(this)">🦈 Shark — Feeding Frenzy <span class="chev">▼</span></button>
+      <div class="hero-collapse"><div class="hero-collapse-inner"><p>Smells blood in the water when the opponent is trailing. Unlike every other Hero here, this one isn't fixed-magnitude — it scales directly with how far behind the opponent's running total is, capped at +20.0. The further behind they fall, the harder Shark presses; a close game gets little to nothing from this play.</p></div></div>
+    </div>
+    <div class="hero-item">
+      <button class="hero-trigger" onclick="toggleHero(this)">😼 ShittyKitties — Chaos Mode <span class="chev">▼</span></button>
+      <div class="hero-collapse"><div class="hero-collapse-inner"><p>Even the bot doesn't know which stat is about to triple. Mechanically identical to Rabbit's Lucky Foot — 25% chance per quarter, flat +8.0 — dressed up with "random stat" flavor text, not an actual formation-dependent bonus (an earlier version scaled to formation and was reworked to stay flat and fair across all three).</p></div></div>
+    </div>
+    <div class="hero-item">
+      <button class="hero-trigger" onclick="toggleHero(this)">👽 Alien — Abduction <span class="chev">▼</span></button>
+      <div class="hero-collapse"><div class="hero-collapse-inner"><p>Beams away the opponent's power when they least expect it. Always fires exactly once, either Quarter 1 (30% of the time) or Quarter 2 (the other 70%) — not a coin flip on whether it happens, only when. -8.0 to the opponent, guaranteed.</p></div></div>
+    </div>
+    <div class="hero-item">
+      <button class="hero-trigger" onclick="toggleHero(this)">🦇 Bat — Echolocation <span class="chev">▼</span></button>
+      <div class="hero-collapse"><div class="hero-collapse-inner"><p>A precision strike before the opponent even sees it coming. 50% chance in Q1 only for -16.0 to the opponent — same shape as Eagle's Talon Strike, just aimed at the other side of the field instead of boosting its own team.</p></div></div>
+    </div>
+    <div class="hero-item">
+      <button class="hero-trigger" onclick="toggleHero(this)">🦬 Bison — Stampede <span class="chev">▼</span></button>
+      <div class="hero-collapse"><div class="hero-collapse-inner"><p>Runs the opponent over, every single quarter. A flat, guaranteed +2.0 every quarter, no chance involved at all — 8.0 total, identical every game. The only Hero with zero randomness in its own play.</p></div></div>
+    </div>
+  </section>
+
+  <section id="match">
+    <h2><span class="dot" style="background:var(--striker);"></span>How a match plays out</h2>
+    <p>Voltball isn't scored like traditional football — there's no downs or possessions changing hands. It's one continuous Voltage formula, resolved quarter by quarter, driven by your roster's real stats, your formation and Tempo choices, and your coach's signature play if you have one.</p>
+    <p>Matches broadcast at a real pace once they kick off — a kickoff post goes out with a link to watch live, and the full recap (final score, quarter-by-quarter breakdown, and your coach's flavor text if their play fired) posts once playback would actually be finished. Every quarter gets real commentary, even a quiet one — nothing's ever a fake number dressed up as an event.</p>
+  </section>
+
+  <section id="outcomes">
+    <h2><span class="dot" style="background:var(--qb);"></span>What actually decides the outcome</h2>
+    <p>No single choice guarantees a win. Here's the real formula, not a description of its shape.</p>
+
+    <h3 style="font-family:'Chakra Petch',sans-serif; font-size:15px; margin:20px 0 8px;">Position weighting — the actual split</h3>
+    <p>Striker, Mid, and Guard each weigh two stats, not one — <b>70% from a primary stat, 30% from a secondary</b>:</p>
+    <table class="formation-table">
+      <tr><th>Position</th><th>Primary (70%)</th><th>Secondary (30%)</th></tr>
+      <tr><td><b>Striker</b></td><td>VLT</td><td>SPK</td></tr>
+      <tr><td><b>Mid</b></td><td>SPK</td><td>INS</td></tr>
+      <tr><td><b>Guard</b></td><td>INS</td><td>VLT</td></tr>
+    </table>
+    <p>These weights are mean-normalized against the full 1,678-Zappy collection, so no position starts with an inherent edge — the 70/30 split is deliberate, not accidental.</p>
+
+    <h3 style="font-family:'Chakra Petch',sans-serif; font-size:15px; margin:20px 0 8px;">QB — not a pooled weight, a multiplier</h3>
+    <p>QB works differently from the other three positions entirely. It doesn't pool with anyone — your QB's own SPK stat drives a <b>multiplier on your team's whole base offense</b> for that quarter:</p>
+    <div class="formula-block"><span class="fname">qb_multiplier</span> = 1.0 + (QB's SPK − <span class="fval">54.61</span>) × <span class="fval">0.0006</span>, clamped to [<span class="fval">0.95</span>, <span class="fval">1.05</span>]</div>
+    <p>54.61 is the real collection-wide average SPK, so a perfectly average QB is exactly neutral (1.0×, no effect at all). A strong QB (SPK in the 90s, near the real top of the collection) lifts the whole team's offense by roughly 2%; a weak one drags it down by up to 5% at the floor. Real, but deliberately modest — an earlier, more aggressive version of this let QB alone produce a 100% win rate in extreme cases, which defeated the point of it being one input among several. This version caps a common QB gap at roughly a 56% edge, not a lock.</p>
+
+    <h3 style="font-family:'Chakra Petch',sans-serif; font-size:15px; margin:20px 0 8px;">The full quarter formula</h3>
+    <p>Here's the actual calculation, in order, for one team in one quarter:</p>
+    <div class="formula-block">
+striker_component = Striker_pool(VLT) × <span class="fval">0.119</span> + Striker_pool(SPK) × <span class="fval">0.0326</span><br>
+mid_component&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = Mid_pool(SPK) × <span class="fval">0.077</span> + Mid_pool(INS) × <span class="fval">0.0368</span><br>
+base_offense&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = striker_component + mid_component<br>
+<br>
+defense_reduction = min(opponent Guard_pool(INS) × <span class="fval">0.0005</span>, <span class="fval">0.25</span>) &nbsp;<span style="color:var(--text-dim);">// capped at 25% — defense can never fully shut you out</span><br>
+turnover_bonus&nbsp;&nbsp;&nbsp;&nbsp; = own Guard_pool(INS) × <span class="fval">0.070</span> + own Guard_pool(VLT) × <span class="fval">0.0421</span><br>
+<br>
+<span class="fname">quarter_voltage</span> = (base_offense × (1 − defense_reduction) + turnover_bonus)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; × Average Multiplier &nbsp;<span style="color:var(--text-dim);">// Tempo's average-shift, see below</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; × qb_multiplier
+    </div>
+    <p>A team's own Guard pool does double duty — it reduces how much the opponent's defense can cut into your offense (indirectly, via the opponent's own defense_reduction math) and directly adds turnover_bonus on top. That's the whole deterministic core; random quarter events (Lightning, Cold Streak, Trick Play, and the rest) and coach signatures layer on separately, after this.</p>
+
+    <h3 style="font-family:'Chakra Petch',sans-serif; font-size:15px; margin:20px 0 8px;">Tempo — actually two separate dials, not one</h3>
+    <p>This is a genuine correction to how it's often described. Tempo doesn't touch the deterministic formula above at all — it only scales the <i>random event</i> layer, and it does that through <b>two independent numbers</b> that move in opposite directions:</p>
+    <table class="formation-table">
+      <tr><th></th><th>Controlled (1.0)</th><th>Aggressive (10.0)</th></tr>
+      <tr><td><b>Average Multiplier</b></td><td>1.06×</td><td>0.94×</td></tr>
+      <tr><td><b>Volatility Multiplier</b> (event size & odds)</td><td>0.5×</td><td>1.6×</td></tr>
+    </table>
+    <p>The <b>Average Multiplier</b> is the real average tradeoff — it multiplies the whole quarter's score directly, so Controlled is genuinely worth about 6% more on average, Aggressive about 6% less. The <b>Volatility Multiplier</b> is the bigger effect by far — it scales how often random events fire and how big they are when they do, more than tripling in strength from one end of the dial to the other. In practice: Tempo is primarily a <i>variance</i> dial, with a real but comparatively modest average-outcome tradeoff layered underneath it. Cranking to full Aggressive doesn't mainly change your expected score — it mainly changes how wildly a single match can swing away from it.</p>
+  </section>
+
+  <section id="standings">
+    <h2><span class="dot" style="background:var(--mid);"></span>Standings & playoffs</h2>
+    <p>Every result updates the standings — win/loss record, tracked all season. At the end of the regular season, the <b>top 4 teams</b> make the playoffs: 1 vs 4 and 2 vs 3 in the semifinal, both winners meet in the championship the following week. Win it, and you're the season's champion.</p>
+  </section>
+
+  <section id="rhythm">
+    <h2><span class="dot" style="background:var(--guard);"></span>The weekly rhythm</h2>
+    <ul>
+      <li>Lineups can be set, and <b>changed</b>, any time before that week's matches actually air — locking in isn't final until kickoff</li>
+      <li>Matches for the week go live in a staggered broadcast through the day, not all at once</li>
+      <li>Scores and standings stay hidden for a match until it's actually finished airing — even your own result, checked on your own team page, respects this. No spoilers, ever.</li>
+    </ul>
+  </section>
+
+  <div class="footnote">Questions about anything here? Ask in the server — this page gets updated as the game does.</div>
+</main>
+
+<script>
+function toggleHero(btn){
+  btn.closest('.hero-item').classList.toggle('open');
+}
+window.toggleHero = toggleHero;
+</script>
+
+</body>
+</html>
