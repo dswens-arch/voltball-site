@@ -226,6 +226,7 @@
       <a class="nav-link" href="./guide.html">Guide</a>
     </div>
     <button class="wallet-btn" id="wallet-btn" onclick="connectWallet()">Connect Wallet</button>
+    <button id="highlight-me-btn" onclick="signAndHighlightMyTeam()" style="display:none; background:var(--panel-2); border:1px solid var(--line); color:var(--text-dim); font-family:'Chakra Petch',sans-serif; font-weight:600; font-size:11px; padding:8px 12px; border-radius:6px; cursor:pointer; margin-left:8px; white-space:nowrap;">📍 Show my team</button>
     <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMobileNav()" aria-label="Toggle menu" aria-expanded="false">
       <span></span><span></span><span></span>
     </button>
@@ -611,7 +612,7 @@ window.connectWallet = async function(){
     btn.innerHTML = `<span class="dot"></span> ${accountAddress.slice(0,6)}…${accountAddress.slice(-4)}`;
     btn.classList.add('connected');
     btn.disabled = false;
-    resolveAndHighlightMyTeam();
+    tryHighlightFromCache();
   } catch (err) {
     btn.textContent = "Connect Wallet";
     btn.disabled = false;
@@ -620,7 +621,19 @@ window.connectWallet = async function(){
   }
 };
 
-async function resolveAndHighlightMyTeam(){
+function applyMyTeamHighlight(team){
+  if (!team) return; // wallet connected, but no team registered this season
+  myTeamId = team.id;
+  highlightMyTeamPanel();
+}
+
+// Automatic, free -- only ever reads an EXISTING cached identity, never
+// signs. If nothing's cached, shows the opt-in button instead of
+// silently prompting a wallet signature just to browse Scout.
+// This used to sign automatically on every connect/reconnect, on every
+// page -- a real, reported annoyance (repeated unexplained "sign this
+// transaction" prompts just from clicking around the site).
+async function tryHighlightFromCache(){
   await seasonLoadPromise;
   if (!currentSeason) return; // no season at all -- nothing to match against
 
@@ -631,23 +644,32 @@ async function resolveAndHighlightMyTeam(){
     team = null;
   }
 
-  if (!team){
-    try {
-      const { status, result } = await getMyTeam();
-      if (status === 200 && result.team){
-        team = result.team;
-        setCachedTeam(accountAddress, team);
-      }
-    } catch (err) {
-      console.error(err);
-      return; // non-critical -- Scout stays fully usable without a highlight
-    }
+  if (team){
+    applyMyTeamHighlight(team);
+  } else {
+    const btn = document.getElementById('highlight-me-btn');
+    if (btn) btn.style.display = 'inline-block';
   }
-
-  if (!team) return; // wallet connected, but no team registered this season
-  myTeamId = team.id;
-  highlightMyTeamPanel();
 }
+
+// Only reachable via the explicit "Show my team" button -- this is the
+// ONE place a fresh wallet signature gets requested on this page, and
+// only because the person asked for it, not automatically on connect.
+window.signAndHighlightMyTeam = async function(){
+  await seasonLoadPromise;
+  if (!currentSeason) return;
+  try {
+    const { status, result } = await getMyTeam();
+    if (status === 200 && result.team){
+      setCachedTeam(accountAddress, result.team);
+      applyMyTeamHighlight(result.team);
+      const btn = document.getElementById('highlight-me-btn');
+      if (btn) btn.style.display = 'none';
+    }
+  } catch (err) {
+    console.error(err);
+  }
+};
 
 function highlightMyTeamPanel(){
   if (!myTeamId) return;
@@ -671,7 +693,7 @@ peraWallet.reconnectSession().then(async (accounts) => {
     const btn = document.getElementById('wallet-btn');
     btn.innerHTML = `<span class="dot"></span> ${accountAddress.slice(0,6)}…${accountAddress.slice(-4)}`;
     btn.classList.add('connected');
-    resolveAndHighlightMyTeam();
+    tryHighlightFromCache();
   }
 }).catch(() => {});
 
