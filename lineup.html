@@ -1034,7 +1034,17 @@ async function loadSeasonSchedule(){
 
       let resultHtml;
       if (!match){
-        resultHtml = `<span class="result tbd">Not yet played</span>`;
+        // scheduled_kickoff_at is set as soon as the week opens (see
+        // _open_season_week in voltball_cog.py), which can be days
+        // before this pairing actually airs -- show the real local
+        // time once it's known instead of a bare "Not yet played".
+        if (row.scheduled_kickoff_at){
+          const kickoff = new Date(row.scheduled_kickoff_at);
+          const label = kickoff.toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+          resultHtml = `<span class="result tbd">${label}</span>`;
+        } else {
+          resultHtml = `<span class="result tbd">Not yet played</span>`;
+        }
       } else if (!match.recap_posted_at){
         resultHtml = `<span class="result live">🔴 LIVE</span>`;
       } else {
