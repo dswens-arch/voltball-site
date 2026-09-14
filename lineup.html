@@ -440,7 +440,13 @@
       <div class="team-identity">
         <img class="coach-portrait" id="coach-portrait" src="" alt="">
         <div>
-          <h1 class="display" id="team-name-display">—</h1>
+          <h1 class="display" id="team-name-display" style="display:inline-block;">—</h1>
+          <button id="rename-team-btn" onclick="startRenameTeam()" title="Rename your team" style="background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:14px; margin-left:6px; vertical-align:middle;">✎</button>
+          <div id="rename-team-row" style="display:none; align-items:center; gap:8px; margin-bottom:4px;">
+            <input id="rename-team-input" maxlength="40" style="padding:8px; background:var(--panel); border:1px solid var(--line); border-radius:6px; color:var(--text); font-family:'IBM Plex Mono',monospace;">
+            <button class="wallet-btn" onclick="confirmRenameTeam()" style="padding:6px 12px; font-size:12px;">Save</button>
+            <button onclick="cancelRenameTeam()" style="background:none; border:1px solid var(--line); color:var(--text-dim); border-radius:6px; padding:6px 12px; font-size:12px; cursor:pointer; font-family:'IBM Plex Mono',monospace;">Cancel</button>
+          </div>
           <div class="sub">Coached by <b id="coach-name-display">—</b> · Week <b id="week-display">—</b> <span id="locked-badge" style="display:none;"></span></div>
         </div>
       </div>
@@ -664,6 +670,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const FN_GET_MY_TEAM = "https://texlxhkzsbvwvptjanhd.supabase.co/functions/v1/get-my-team";
 const FN_REGISTER_TEAM = "https://texlxhkzsbvwvptjanhd.supabase.co/functions/v1/register-team";
 const FN_SUBMIT_LINEUP = "https://texlxhkzsbvwvptjanhd.supabase.co/functions/v1/submit-lineup";
+const FN_RENAME_TEAM = "https://texlxhkzsbvwvptjanhd.supabase.co/functions/v1/rename-team";
 function toast(msg, isError=false){
   const el = document.getElementById('toast');
   el.textContent = msg;
@@ -1087,6 +1094,49 @@ window.registerTeam = async function(heroAssetId = null){
   } catch (err) {
     console.error(err);
     toast("Registration failed — see console.", true);
+  }
+};
+
+// ── Rename team — same signed-transaction pattern as registerTeam(),
+// hitting rename-team.ts instead of register-team.ts. ──
+window.startRenameTeam = function(){
+  document.getElementById('rename-team-input').value = currentTeam.team_name;
+  document.getElementById('team-name-display').style.display = 'none';
+  document.getElementById('rename-team-btn').style.display = 'none';
+  document.getElementById('rename-team-row').style.display = 'flex';
+  document.getElementById('rename-team-input').focus();
+};
+
+window.cancelRenameTeam = function(){
+  document.getElementById('rename-team-row').style.display = 'none';
+  document.getElementById('team-name-display').style.display = 'inline-block';
+  document.getElementById('rename-team-btn').style.display = 'inline-block';
+};
+
+window.confirmRenameTeam = async function(){
+  const newName = document.getElementById('rename-team-input').value.trim();
+  if (!newName){ toast("Enter a team name first.", true); return; }
+  if (newName === currentTeam.team_name){ cancelRenameTeam(); return; }
+  const timestamp = Math.floor(Date.now() / 1000);
+  // Key order must stay byte-for-byte in sync with canonicalMessage()
+  // in supabase/functions/rename-team/index.ts's note-field parsing.
+  const payload = { team_id: currentTeam.id, new_team_name: newName, timestamp };
+  try {
+    toast("Confirm the transaction in your wallet — this is a real 0-ALGO self-payment used as proof, not a transfer.");
+    const signedTxn = await signPayloadViaTransaction(payload);
+    const { status, result } = await callFunction(FN_RENAME_TEAM, { signed_txn: signedTxn });
+    if (status === 200){
+      currentTeam.team_name = result.team.team_name;
+      document.getElementById('team-name-display').textContent = currentTeam.team_name;
+      clearCachedTeam(accountAddress); // a stale cached copy would still show the old name
+      cancelRenameTeam();
+      toast(`✓ Team renamed to ${currentTeam.team_name}`);
+    } else {
+      toast(`✗ ${result.error}`, true);
+    }
+  } catch (err) {
+    console.error(err);
+    toast("Rename failed — see console.", true);
   }
 };
 
