@@ -1247,6 +1247,7 @@ if (new URLSearchParams(location.search).get('debug') === '1'){
   panel.innerHTML = `
     <button onclick="window.debugTestTxnSign()" style="background:var(--striker); color:#000; border:none; padding:10px 16px; border-radius:6px; font-weight:700; margin-bottom:10px; width:100%;">🔧 Test Transaction Signing</button>
     <button onclick="window.debugTestGetMyTeam()" style="background:var(--guard); color:#000; border:none; padding:10px 16px; border-radius:6px; font-weight:700; margin-bottom:10px; width:100%;">🔧 Test Full getMyTeam (sign + server)</button>
+    <button onclick="window.debugTestRenameTeam()" style="background:var(--mid); color:#000; border:none; padding:10px 16px; border-radius:6px; font-weight:700; margin-bottom:10px; width:100%;">🔧 Test Rename Team (sign + server)</button>
     <pre id="debug-output" style="white-space:pre-wrap; word-break:break-all;">Tap the button above after connecting your wallet.</pre>
   `;
   document.body.appendChild(panel);
@@ -1288,6 +1289,34 @@ window.debugTestGetMyTeam = async function(){
     debugLog(`Response body: ${JSON.stringify(result)}`);
   } catch (err) {
     debugLog(`THREW (never reached the server, or fetch itself failed): ${err?.message || err}`);
+    debugLog(`Full error: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`);
+  }
+};
+
+// Same shape as debugTestGetMyTeam -- full round trip (sign + send +
+// parse), so "Rename failed — see console" (which doesn't exist on
+// mobile) becomes an actual visible status code and response body.
+// Uses currentTeam's real id/name so this is a harmless no-op rename
+// (same name back) rather than actually renaming anything by accident.
+window.debugTestRenameTeam = async function(){
+  const out = document.getElementById('debug-output');
+  if (out) out.textContent = 'Running...';
+  debugLog(`accountAddress: ${accountAddress} (${typeof accountAddress})`);
+  debugLog(`currentTeam: ${currentTeam ? JSON.stringify({ id: currentTeam.id, team_name: currentTeam.team_name }) : 'null -- no team loaded yet, connect + wait for team to load first'}`);
+  if (!currentTeam){ debugLog('Aborting -- no team loaded.'); return; }
+  const payload = { team_id: currentTeam.id, new_team_name: currentTeam.team_name, timestamp: Math.floor(Date.now() / 1000) };
+  debugLog(`Payload: ${JSON.stringify(payload)}`);
+  debugLog(`FN_RENAME_TEAM: ${FN_RENAME_TEAM}`);
+  try {
+    debugLog('Signing transaction (approve in Pera when prompted)...');
+    const signedTxn = await signPayloadViaTransaction(payload);
+    debugLog(`Signed OK (first 80 chars): ${signedTxn.slice(0, 80)}...`);
+    debugLog('Sending to server...');
+    const { status, result } = await callFunction(FN_RENAME_TEAM, { signed_txn: signedTxn });
+    debugLog(`HTTP status: ${status}`);
+    debugLog(`Response body: ${JSON.stringify(result)}`);
+  } catch (err) {
+    debugLog(`THREW (never reached the server, or fetch/signing itself failed): ${err?.message || err}`);
     debugLog(`Full error: ${JSON.stringify(err, Object.getOwnPropertyNames(err))}`);
   }
 };
